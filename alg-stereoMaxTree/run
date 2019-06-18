@@ -20,7 +20,7 @@ set tmplog = $p/../output/tmp-log.txt
 set im0 = $p/../../trainingF/$dataset/im0.png
 set im1 = $p/../../trainingF/$dataset/im1.png
 set outfolder = $p/../../trainingF/$dataset/
-set maxdisp = `awk -F= '/ndisp/ {print $2}' $p/../../trainingF/$dataset/calib.txt`
+set maxdisp = `awk -F= '/ndisp/ {print $2}' $p/../../trainingF/$dataset/calib.txt` 
 
-(set echo; $p/alg-stereoMaxTree 16 $im0 $im1 $maxdisp $dataset)
+(set echo; $p/alg-stereoMaxTree $im0 $im1 $maxdisp ../trainingF/$dataset disp0MaxTreeS_s)
 

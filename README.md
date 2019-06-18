@@ -7,7 +7,7 @@ To run the implementation, perform the subsequently listed steps.
 ### Edit parameters
 
 The parameters of the method are assumed to be kept constant. Therefore, values are assigned to them in code. 
-The parameters of the method are assigned in the file `alg-stereoMaxTree/matching.cpp`.
+The parameters of the method are assigned in the file `alg-stereoMaxTree/index.cpp` in the region marked 'Parameters'.
 
 ### Execute the implementation
 
