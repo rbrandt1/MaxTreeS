@@ -1,4 +1,4 @@
-/****** Load Dependencies ******/
+/****** Dependencies ******/
 
 #include <cmath>
 #include <math.h>
@@ -24,6 +24,7 @@
 
 #define ROOT				(-1)
 
+// Type definition of a Max-Tree node
 typedef struct MaxNode	{
   int parent;
   int Area;
@@ -39,6 +40,7 @@ typedef struct MaxNode	{
   bool prevCurLevel;
 } MaxNode;
 
+// Type definition of matching of two nodes
 typedef struct Match	{
   float cost;
   int match;
@@ -53,7 +55,7 @@ float alpha = .8; // alpha
 int minAreaMatchedFineTopNode = 0; // omega_alpha
 float factorMax = 3; // omega_beta = image_width/factorMax
 int nColors = 5; // q
-int sizes[16] = {1,0,0,0}; // S, appended with 0,0
+int sizes[16] = {1,0,0,0}; // S, appended with 0,0 which correspond to the refinement step
 int total = 4; // #S + 2
 uint kernelCostComp = 6; // omega_delta
 bool sparse = true; // produce sparse (true) or semi-dense (false) disparity map
@@ -78,6 +80,13 @@ int disparityLevels;
 
 /****** Functions ******/
 
+/**
+ *
+ * Get the current time
+ *
+ * @return  	The current time in seconds
+ *
+ */
 double getWallTime(){
     struct timeval time;
     if (gettimeofday(&time,NULL)){
@@ -86,6 +95,13 @@ double getWallTime(){
     return (double)time.tv_sec + (double)time.tv_usec * .000001;
 }
 
+/**
+ *
+ * Clear (i.e. deallocate the memory) of a 2D vector
+ *
+ * @param    std::vector<std::vector<int>> vect  The vector to clear.
+ *
+ */
 void clear2Dvect(std::vector<std::vector<int>> vect) {
 	for (uint i = 0; i < vect.size(); i++) {
 		vect[i].clear();
@@ -93,7 +109,21 @@ void clear2Dvect(std::vector<std::vector<int>> vect) {
 	vect.clear();
 }
 
-std::vector<int> getNeighboursBottom(MaxNode * tree, int indexCenter, int width,
+/**
+ *
+ * Get the neighbors below (in terms of y coordinate) a node
+ *
+ * @param   MaxNode * tree Max-tree
+ * @param	int indexCenter Index of node
+ * @param	int width Width of image
+ * @param	int height Height of image
+ * @param	bool useCur Use current level or that of previous iteration.
+ * @param	bool dispCheck Whether only nodes with a disparity assigned to them are included.
+ * @param	int kernelCostComp At most the kernelCostComp nodes above/below the node are included.
+ * @return	 The neighbors below (in terms of y coordinate) a node
+ *
+ */
+std::vector<int> getNeighborsBottom(MaxNode * tree, int indexCenter, int width,
 		int height, bool useCur, bool dispCheck,int kernelCostComp) {
 	std::vector<int> tmp;
 
@@ -135,7 +165,21 @@ std::vector<int> getNeighboursBottom(MaxNode * tree, int indexCenter, int width,
 	return tmp;
 }
 
-std::vector<int> getNeighboursTop(MaxNode * tree, int indexCenter, int width,
+/**
+ *
+ * Get the neighbors above (in terms of y coordinate) a node
+ *
+ * @param   MaxNode * tree Max-tree
+ * @param	int indexCenter Index of node
+ * @param	int width Width of image
+ * @param	int height Height of image
+ * @param	bool useCur Use current level or that of previous iteration.
+ * @param	bool dispCheck Whether only nodes with a disparity assigned to them are included.
+ * @param	int kernelCostComp At most the kernelCostComp nodes above/below the node are included.
+ * @return	 The neighbors below (in terms of y coordinate) a node
+ *
+ */
+std::vector<int> getNeighborsTop(MaxNode * tree, int indexCenter, int width,
 		int height, bool useCur, bool dispCheck,int kernelCostComp) {
 	std::vector<int> tmp;
 
@@ -177,7 +221,21 @@ std::vector<int> getNeighboursTop(MaxNode * tree, int indexCenter, int width,
 	return tmp;
 }
 
-void calcCI(MaxNode * tree, int index, int * res, int dispLevels, int width,
+//
+/**
+ *
+ * Calculate the disparity search range for a node with index
+ *
+ * @param    MaxNode * tree Max-Tree
+ * @param    int index Index of the node
+ * @param    int * res Stores the result: the disparity search range for a node with index.
+ * @param    int dispLevels The maximum disparity offset allowed.
+ * @param	int width Width of image
+ * @param	int height Height of image
+ * @param   int kernel Number of neighbors above and below the node considered in the calculation.
+ *
+ */
+void calcDispSearchRange(MaxNode * tree, int index, int * res, int dispLevels, int width,
 		int height,int kernel) {
 	res[0] = 0;
 	res[1] = dispLevels;
@@ -189,8 +247,8 @@ void calcCI(MaxNode * tree, int index, int * res, int dispLevels, int width,
 
 		return;
 	} else {
-		neighTop = getNeighboursTop(tree, index, width, height, false, true,kernel);
-		neighBottom = getNeighboursBottom(tree, index, width, height, false,
+		neighTop = getNeighborsTop(tree, index, width, height, false, true,kernel);
+		neighBottom = getNeighborsBottom(tree, index, width, height, false,
 				true,kernel);
 	}
 
@@ -231,7 +289,15 @@ void calcCI(MaxNode * tree, int index, int * res, int dispLevels, int width,
 	neighBottom.clear();
 }
 
-void plotDispmap(cv::Mat dispMap, int disparityLevelsResized, bool side) {
+/**
+ *
+ * Save a disparity map
+ *
+ * @param   cv::Mat dispMap The disparity map to save.
+ *  @param  int disparityLevelsResized The maximum disparity offset.
+ *
+ */
+void saveDispmap(cv::Mat dispMap, int disparityLevelsResized) {
 
 	for (int r = 0; r < dispMap.rows; r++) {
 		for (int c = 0; c < dispMap.cols; c++) {
@@ -250,9 +316,21 @@ void plotDispmap(cv::Mat dispMap, int disparityLevelsResized, bool side) {
 	opencv_pfm::imwrite_pfm(str.c_str(), dispMap,1,1);
 }
 
-/* cost computation */
-
-float costComp(cv::Mat imgL, cv::Mat imgR, int type, MaxNode* treeLeft,
+/**
+ *
+ * Compute the gradient cost between a node pair
+ *
+ * @param    cv::Mat imgL The left images
+ * @param    cv::Mat imgR The right images
+ * @param    int type Type of images
+ * @param    MaxNode* treeLeft Left Max-tree
+ * @param    MaxNode* treeRight Right Max-tree
+ * @param    int indexL Index of the left node
+ * @param     int indexR Index of the right node
+ * @return   Gradient cost
+ *
+ */
+float gradientCostComp(cv::Mat imgL, cv::Mat imgR, int type, MaxNode* treeLeft,
 		MaxNode* treeRight, int indexL, int indexR) {
 
 	int width = imgL.cols;
@@ -287,7 +365,18 @@ float costComp(cv::Mat imgL, cv::Mat imgR, int type, MaxNode* treeLeft,
 	return (costL + costR);
 }
 
-int numDescendants(int indexL, int indexR, MaxNode* treeHorL, MaxNode* treeHorR) {
+/**
+ *
+ * Compute the context cost between a node pair
+ *
+ * @param    int indexL Index of the left node
+ * @param    int indexR Index of the right node
+ * @param    MaxNode* treeLeft Left Max-tree
+ * @param    MaxNode* treeRight Right Max-tree
+ * @return   Context cost
+ *
+ */
+int contextCost(int indexL, int indexR, MaxNode* treeHorL, MaxNode* treeHorR) {
 
 	if(indexL >= 0 && indexR >= 0){
 		float total = 0;
@@ -312,6 +401,18 @@ int numDescendants(int indexL, int indexR, MaxNode* treeHorL, MaxNode* treeHorR)
 	}
 }
 
+/**
+ *
+ * Compute the fine top nodes in Max-Trees
+ *
+ * @param    MaxNode* treeLeftHor Left Max-tree
+ * @param    MaxNode* treeRightHor Right Max-tree
+ * @param    int width Width of input images
+ * @param    int height Height of input images
+ * @param    std::vector<std::vector<int>> *topsL Will store the indexes of the fine top nodes in the left image.
+ * @param    std::vector<std::vector<int>> *topsR Will store the indexes of the fine top nodes in the right image.
+ *
+ */
 void getTops(MaxNode * treeRightHor, MaxNode * treeLeftHor, int width,
 		int height, std::vector<std::vector<int>> *topsL,
 		std::vector<std::vector<int>> * topsR) {
@@ -339,18 +440,37 @@ void getTops(MaxNode * treeRightHor, MaxNode * treeLeftHor, int width,
 	}
 }
 
+/**
+ *
+ * Clear markings of nodes as prevCurLevel
+ *
+ * @param    int width Width of the input image
+ * @param    int height Height of the input image
+ * @param    MaxNode* tree Max-Tree
+ *
+ */
 void clearPrevCurLevel(int width, int height, MaxNode* tree) {
 	for (int i = 0; i < width * height; i++) {
 		tree[i].prevCurLevel = false;
 	}
 }
 
+/**
+ *
+ * Clear markings of nodes as curLevel
+ *
+ * @param    int width Width of the input image
+ * @param    int height Height of the input image
+ * @param    MaxNode* tree Max-Tree
+ *
+ */
 void clearCurLevel(int width, int height, MaxNode* tree) {
 	for (int i = 0; i < width * height; i++) {
 		tree[i].prevCurLevel = tree[i].curLevel;
 		tree[i].curLevel = false;
 	}
 }
+
 
 void nthChildrenSide(int height, const std::vector<std::vector<int> >& topsL,
 		int n, std::vector<std::vector<int> >* topsLnTh, MaxNode* treeLeftHor) {
@@ -419,6 +539,20 @@ void nthChildrenSide(int height, const std::vector<std::vector<int> >& topsL,
 
 }
 
+/**
+ *
+ * Compute the nth-level coarse top nodes in Max-Trees
+ *
+ * @param  std::vector<std::vector<int>> topsR The fine top nodes in the right image.
+ * @param  std::vector<std::vector<int>> topsL The fine top nodes in the left image.
+ * @param  int n The level
+ * @param  std::vector<std::vector<int>> * topsRnTh Returns the nth-level coarse top nodes in the right Max-Tree
+ * @param  std::vector<std::vector<int>> * topsLnTh Returns the nth-level coarse top nodes in the left Max-Tree
+ * @param  MaxNode * treeRightHor Right Max-Tree
+ * @param  MaxNode * treeLeftHor Left Max-Tree
+ * @param  int height Height of the input images.
+ *
+ */
 void getNthTops(std::vector<std::vector<int>> topsR,
 		std::vector<std::vector<int>> topsL, int n,
 		std::vector<std::vector<int>> * topsRnTh,
@@ -501,7 +635,7 @@ public:
 
 					int * res = (int *) malloc(2 * sizeof(int));
 
-					calcCI(treeLeftHor, index, res, disparityLevels, width, height,kernelCostComp); // iteration==total-1?0:kernelCostComp
+					calcDispSearchRange(treeLeftHor, index, res, disparityLevels, width, height,kernelCostComp); // iteration==total-1?0:kernelCostComp
 
 					int n0 = res[0];
 					int n1 = res[1];
@@ -579,50 +713,50 @@ public:
 
 
 
-						std::vector<int> neighboursLTop = getNeighboursTop(
+						std::vector<int> NeighborsLTop = getNeighborsTop(
 								treeLeftHor, indexL, width, height, true,
 								false,kernelCostComp);
-						std::vector<int> neighboursRTop = getNeighboursTop(
+						std::vector<int> NeighborsRTop = getNeighborsTop(
 								treeRightHor, indexR, width, height, true,
 								false,kernelCostComp);
-						std::vector<int> neighboursLBottom =
-								getNeighboursBottom(treeLeftHor, indexL, width,
+						std::vector<int> NeighborsLBottom =
+								getNeighborsBottom(treeLeftHor, indexL, width,
 										height, true, false,kernelCostComp);
-						std::vector<int> neighboursRBottom =
-								getNeighboursBottom(treeRightHor, indexR, width,
+						std::vector<int> NeighborsRBottom =
+								getNeighborsBottom(treeRightHor, indexR, width,
 										height, true, false,kernelCostComp);
 
 						float colCost = 0;
 						float descendentsCost = 0;
 						float sizeTop =
-								neighboursLTop.size() > neighboursRTop.size() ?
-										neighboursRTop.size() :
-										neighboursLTop.size();
+								NeighborsLTop.size() > NeighborsRTop.size() ?
+										NeighborsRTop.size() :
+										NeighborsLTop.size();
 						float sizeBottom =
-								neighboursLBottom.size()
-										> neighboursRBottom.size() ?
-										neighboursRBottom.size() :
-										neighboursLBottom.size();
+								NeighborsLBottom.size()
+										> NeighborsRBottom.size() ?
+										NeighborsRBottom.size() :
+										NeighborsLBottom.size();
 
 
 						for (int i = 0; i < sizeTop; i++) {
 
-							float tmp = costComp(imgLeft, imgRight, 0,
+							float tmp = gradientCostComp(imgLeft, imgRight, 0,
 									treeLeftHor, treeRightHor,
-									neighboursLTop[i], neighboursRTop[i]);
+									NeighborsLTop[i], NeighborsRTop[i]);
 							colCost += tmp;
 
-							tmp = numDescendants(neighboursLTop[i],neighboursRTop[i],treeLeftHor,treeRightHor);
+							tmp = contextCost(NeighborsLTop[i],NeighborsRTop[i],treeLeftHor,treeRightHor);
 							descendentsCost += tmp;
 						}
 
 						for (int i = 0; i < sizeBottom; i++) {
-							float tmp = costComp(imgLeft, imgRight, 0,
+							float tmp = gradientCostComp(imgLeft, imgRight, 0,
 									treeLeftHor, treeRightHor,
-									neighboursLBottom[i], neighboursRBottom[i]);
+									NeighborsLBottom[i], NeighborsRBottom[i]);
 							colCost += tmp;
 
-							tmp = numDescendants(neighboursLBottom[i],neighboursRBottom[i],treeLeftHor,treeRightHor);
+							tmp = contextCost(NeighborsLBottom[i],NeighborsRBottom[i],treeLeftHor,treeRightHor);
 							descendentsCost += tmp;
 						}
 
@@ -640,10 +774,10 @@ public:
 							matchesRowR[RvInd].match = LvInd;
 						}
 
-						neighboursLTop.clear();
-						neighboursRTop.clear();
-						neighboursLBottom.clear();
-						neighboursRBottom.clear();
+						NeighborsLTop.clear();
+						NeighborsRTop.clear();
+						NeighborsLBottom.clear();
+						NeighborsRBottom.clear();
 
 					} else {
 						if (c > endEnd)
@@ -723,7 +857,23 @@ public:
 	}
 };
 
-void coarseRows(MaxNode *treeRightHor, MaxNode *treeLeftHor,
+
+/**
+ *
+ * match coarse top nodes of the same level
+ *
+ * @param MaxNode *treeRightHor The right Max-Tree
+ * @param  MaxNode *treeLeftHor  The left Max-Tree
+ * @param  int disparityLevels The maximum disparity
+ * @param  const cv::Mat imgRight the right images
+ * @param  const cv::Mat imgLeft the left images
+ * @param  std::vector<std::vector<int>> topsL The coarse top nodes of the left image
+ * @param  std::vector<std::vector<int>> topsR The coarse top nodes of the right image
+ * @param  int iteration The level
+ * @param  cv::Mat * dispMap The resulting disparity map
+ *
+ */
+void matchNodes(MaxNode *treeRightHor, MaxNode *treeLeftHor,
 		int disparityLevels, const cv::Mat imgRight, const cv::Mat imgLeft,
 		std::vector<std::vector<int>> topsL,
 		std::vector<std::vector<int>> topsR, int iteration, cv::Mat * dispMap) {
@@ -860,10 +1010,17 @@ public:
 	}
 };
 
-
-
-MaxNode* buildTree(int height, int width, cv::Mat gval){
-
+/**
+ *
+ * Build a max tree from an image
+ *
+ * @param    cv::Mat gval The image
+ * @return   The generated Max-Tree
+ *
+ */
+MaxNode* buildTree(cv::Mat gval){
+	int height = gval.rows;
+	int width = gval.cols;
 	MaxNode* node = (MaxNode*)malloc(width*height*sizeof(MaxNode));
 
 	parallel_for_(cv::Range(0, height), BuildTreeParalel(height, width, gval,node));
@@ -980,8 +1137,8 @@ int main (int argc, char *argv[]){
 	width = imgLeft.cols;
 	height = imgLeft.rows;
 
-	treeLeftHor = buildTree(height,width,sobelLeft3ucharHor);
-	treeRightHor = buildTree(height,width,sobelRight3ucharHor);
+	treeLeftHor = buildTree(sobelLeft3ucharHor);
+	treeRightHor = buildTree(sobelRight3ucharHor);
 
 	sobelLeft3ucharHor.release();
 	sobelRight3ucharHor.release();
@@ -1025,7 +1182,7 @@ int main (int argc, char *argv[]){
 		getNthTops(topsR, topsL, sizes[i], &topsRnTh, &topsLnTh, treeRightHor,
 				treeLeftHor, height);
 
-		 coarseRows(treeRightHor, treeLeftHor, disparityLevels, imgRight2, imgLeft2, topsLnTh, topsRnTh, i, &dispMap);
+		 matchNodes(treeRightHor, treeLeftHor, disparityLevels, imgRight2, imgLeft2, topsLnTh, topsRnTh, i, &dispMap);
 
 		if (i > 0) {
 			clear2Dvect(topsLnThPrev);
@@ -1068,7 +1225,7 @@ int main (int argc, char *argv[]){
 		dispMap = dispMapFinal;
 	}
 
-	plotDispmap(dispMap, disparityLevelsResized, true);
+	saveDispmap(dispMap, disparityLevelsResized);
 
 
 	// Free memory
