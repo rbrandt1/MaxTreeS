@@ -1,39 +1,8 @@
-# Efficient binocular stereo correspondence matching with 1-D Max-Trees
+# MTStereo
 
 ## Getting Started
 
-To run the implementation, perform the subsequently listed steps.
-
-### Edit parameters
-
-The parameters of the method are assumed to be kept constant. Therefore, values are assigned to them in code. 
-The parameters of the method are assigned in the file `alg-stereoMaxTree/index.cpp` in the region marked 'Parameters'.
-
-### Execute the implementation
-
-The implementation expects the following folder structure and files:
-
-```
-alg-stereoMaxTree
-trainingF/<Testcase>/im0.png (Left image of stereo pair)
-trainingF/<Testcase>/im1.png (Right image of stereo pair)
-trainingF/<Testcase>/calib.txt (Text file containing a line indicating the maximum disparity in the image pair, i.e. ndisp=<int>)
-
-```
-
-When the said files and folders are in place, the implementation can be run by running the command
-
-```
-sudo ./run <Testcase>
-```
-
-A disparity map with filename ``disp0MaxTreeS_s.pfm`` will be written in the ``trainingF/<Testcase>/`` folder. 
-The runtime will be printed in the console.
-
-## Dependencies
-
-The implementation is dependent on the following.
-
-* ``opencv/opencv`` (tested on version 4.1.0)
-* ``Iorethan/opencv_pfm``
-* ``FreeImage``
+Three versions of MTStereo are stored in this repository. 
+Version 1.0, implementing a method proposed in the paper entitled "Efficient binocular stereo correspondence matching with 1-D Max-Trees" is stored in the branch ``version_1.0''.
+Version 2.0, implementing a method proposed in the paper entitled "Efficient and Accurate Depth Estimation with 1-D Max-Tree Matching" is stored in the branch ``version_2.0''.
+A ROSified version of our method is stored in the branch entitled ``version_2.0''.
