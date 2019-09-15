@@ -632,7 +632,7 @@ void processMethod(const char * methodName) {
         for (int k = 4601; k <= 5021; k += 1) {
             for(int versionIndex = 0 ; versionIndex < 2;versionIndex++){
               versionString = genVersionString(versionIndex, useOldGradCost, sparse, useBilateral);
-              int dispLevels = 35;
+              int dispLevels = 100;
                 if(isResultsCompMode){
                  std::string leftImg_string = rootFolder+"/new/SyntheticGardenNew/TEST/left/"+ std::to_string(k) + ".jpg";
                   std::string rightImg_string = rootFolder+"/new/SyntheticGardenNew/TEST/right/"+ std::to_string(k) + ".jpg";
