@@ -1,9 +1,31 @@
-# MTStereo
+# Efficient and Accurate Depth Estimation with 1-D Max-Tree Matching
 
 ## Getting Started
 
-Three versions of MTStereo are stored in this repository. 
+To run the implementation, perform the subsequently listed steps.
 
-Version 1.0, implementing a method proposed in the paper entitled "Efficient binocular stereo correspondence matching with 1-D Max-Trees" is stored in the branch ``version_1.0``.
-Version 2.0, implementing a method proposed in the paper entitled "Efficient and Accurate Depth Estimation with 1-D Max-Tree Matching" is stored in the branch ``version_2.0``.
-A ROS-node version of MTStereo optimized for scenes containing plants, and examples of point clouds it can produce is stored in the branch entitled ``version_ROS``. 
+### Edit parameters
+
+The parameters of the method are assumed to be kept constant. Therefore, values are assigned to them in code. 
+The parameters of the method are assigned in the file `benchmark.cpp` in run() function calls'.
+
+### Execute implementation
+
+The implementation can be run by executing the command
+
+```
+sudo ./main [all,middleburry,kitti2015,realgarden,synthgarden,driving,monkaa,flyingthings] [both,metric,result]
+```
+
+The first argument of the run command specifies on which data set the method should be run. When ``all`` is specified, the method is run on all data sets.
+When ``result`` is added to the run command, disparity maps are generated. When ``metric`` is added to the run command, disparity maps are evaluated. 
+When ``both`` is added to the run command, disparity maps are both generated and evaluated. 
+The accuracy of produced disparity maps, as well as runtime information,  will be printed on the screen and stored in CSV files.
+
+## Dependencies
+
+The implementation is dependent on the following.
+
+* ``opencv/opencv`` (tested on version 4.1.0)
+* ``Iorethan/opencv_pfm``
+* ``FreeImage``
