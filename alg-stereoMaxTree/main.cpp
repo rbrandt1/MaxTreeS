@@ -891,7 +891,7 @@ void matchNodes(MaxNode *treeRightHor, MaxNode *treeLeftHor,
 
 
 
-class BuildTreeParalel: public cv::ParallelLoopBody {
+class BuildTreeParallel: public cv::ParallelLoopBody {
 
 private:
 	int height;
@@ -900,7 +900,7 @@ private:
 	MaxNode* node;
 public:
 
-	BuildTreeParalel(int height, int width,cv::Mat gval,MaxNode * node) : height(height), width(width), gval(gval),node(node) {
+	BuildTreeParallel(int height, int width,cv::Mat gval,MaxNode * node) : height(height), width(width), gval(gval),node(node) {
 	}
 
 	virtual void operator()(const cv::Range& range) const {
@@ -1023,7 +1023,7 @@ MaxNode* buildTree(cv::Mat gval){
 	int width = gval.cols;
 	MaxNode* node = (MaxNode*)malloc(width*height*sizeof(MaxNode));
 
-	parallel_for_(cv::Range(0, height), BuildTreeParalel(height, width, gval,node));
+	parallel_for_(cv::Range(0, height), BuildTreeParallel(height, width, gval,node));
 
 	return node;
 }
@@ -1197,7 +1197,7 @@ int main (int argc, char *argv[]){
 	}
 
 	if (sparse) {
-		int kermel =21;
+		int kernel =21;
 		cv::Mat dispMapFinal = dispMap.clone();
 
 		for(int r = 0;r<dispMap.rows-0;r++){
@@ -1206,8 +1206,8 @@ int main (int argc, char *argv[]){
 					if(curval != -1){
 						int total = 0;
 						int totalMean = 0;
-						for(int rOff = r-kermel>0?-kermel:0;rOff<(r+kermel<=dispMap.rows?kermel:0);rOff++){
-							for(int cOff = c-kermel>0?-kermel:0;cOff<(c+kermel<=dispMap.cols?kermel:0);cOff++){
+						for(int rOff = r-kernel>0?-kernel:0;rOff<(r+kernel<=dispMap.rows?kernel:0);rOff++){
+							for(int cOff = c-kernel>0?-kernel:0;cOff<(c+kernel<=dispMap.cols?kernel:0);cOff++){
 								if(dispMap.at<float>(r+rOff,c+cOff) != -1){
 									if(abs(dispMap.at<float>(r+rOff,c+cOff) - curval) <= abs(cOff)){
 										total++;
