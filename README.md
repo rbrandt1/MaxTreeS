@@ -50,7 +50,7 @@ The parameters of the method are assigned in the file `core.cpp`, and in run() f
 The implementation can be run by executing the command
 
 ```
-sudo ./main [all,middleburry,kitti2015,synthgarden] [both,metric,result]
+sudo ./main [all,middlebury,kitti2015,synthgarden] [both,metric,result]
 ```
 
 The first argument of the run command specifies on which data set the method should be run. When ``all`` is specified, the method is run on all data sets.
