@@ -303,46 +303,6 @@ float metric_density(cv::Mat dmap, cv::Mat gt){
 
 
 
-
-void run2(bool sparse, std::string methodName,std::string versionString,std::string resultsFile_String, std::string leftImg_string,std::string rightImg_string,std::string dispImg_string,std::string dispImgVis_string,int disparityLevels,int factor,float alpha,int minAreaMatchedFineTopNode,int nColors,int * sizes,int total,uint kernelCostComp,int kernelCostVolume,int everyNthRow, float minConfidencePercentage,float allowanceSearchRange){
-
-	if(sparse){
-
-		char method[] = "_sgbm";
-		char method2[] = "_sgbm_vis";
-
-		char* str;
-		str = (char*)dispImg_string.c_str(); 
-		char* str2;
-		str2 = (char*)dispImgVis_string.c_str(); 
-		char *token; 
-		char *token2; 
-		char *rest = str; 
-		char *rest2 = str2; 
-
-		std::string rest_str(rest);
-		std::string rest2_str(rest2);
-
-		std::string token_strpostFix = rest_str.substr(rest_str.size()-4, rest_str.size());
-		std::string token_strpostFix2 = rest2_str.substr(rest2_str.size()-4, rest2_str.size());
-
-
-		token = strtok_r(rest, ".", &rest);	
-		token2 = strtok_r(rest2, ".", &rest2);
-
-		std::string token_str(token);
-		std::string token_str2(token2);
-
-
-		token_str = token_str.substr(0, token_str.size()-3);
-		token_str2 = token_str2.substr(0, token_str2.size()-3);
-
-		printf("python sgbm.py %s %s .%s%s%s .%s%s%s %d\n",leftImg_string.c_str(),rightImg_string.c_str(),token_str.c_str(),method,token_strpostFix.c_str(),token_str2.c_str(),method2,token_strpostFix2.c_str(),disparityLevels);
-
-	}
-};
-
-
 void run(bool sparse, std::string methodName,std::string versionString,std::string resultsFile_String, std::string leftImg_string,std::string rightImg_string,std::string dispImg_string,std::string dispImgVis_string,int disparityLevels,int factor,float alpha,int minAreaMatchedFineTopNode,int nColors,int * sizes,int total,uint kernelCostComp,int kernelCostVolume,int everyNthRow, float minConfidencePercentage,float allowanceSearchRange){
 
 	cv::Mat img_l = cv::imread(leftImg_string.c_str());
@@ -457,28 +417,28 @@ void calcMetricsMasked(std::string methodName,std::string versionString,std::str
 		 }
 		
 		float avgerr = metric_avgerr(dmap, gt, dispLevels,true);
-		float rmse = 0;//metric_rmse(dmap, gt, dispLevels,true);
-		float bad1 = 0;//metric_bad(dmap, gt, 1, dispLevels,true);
-		float bad2 = 0;//metric_bad(dmap, gt, 2, dispLevels,true);
-		float bad3 = 0;//metric_bad(dmap, gt, 3, dispLevels,true);
-		float bad4 = 0;//metric_bad(dmap, gt, 4, dispLevels,true);
-		float bad5 = 0;//metric_bad(dmap, gt, 5, dispLevels,true);	
+		float rmse = metric_rmse(dmap, gt, dispLevels,true);
+		float bad1 = metric_bad(dmap, gt, 1, dispLevels,true);
+		float bad2 = metric_bad(dmap, gt, 2, dispLevels,true);
+		float bad3 = metric_bad(dmap, gt, 3, dispLevels,true);
+		float bad4 = metric_bad(dmap, gt, 4, dispLevels,true);
+		float bad5 = metric_bad(dmap, gt, 5, dispLevels,true);	
 		
 		
 		float avgerr_clipped = metric_avgerr(dmap, gt, dispLevels,false);
-		float rmse_clipped = 0;//metric_rmse(dmap, gt, dispLevels,false);
-		float bad1_clipped = 0;//metric_bad(dmap, gt, 1, dispLevels,false);
-		float bad2_clipped = 0;//metric_bad(dmap, gt, 2, dispLevels,false);
-		float bad3_clipped = 0;//metric_bad(dmap, gt, 3, dispLevels,false);
-		float bad4_clipped = 0;//metric_bad(dmap, gt, 4, dispLevels,false);
-		float bad5_clipped = 0;//metric_bad(dmap, gt, 5, dispLevels,false);	
+		float rmse_clipped = metric_rmse(dmap, gt, dispLevels,false);
+		float bad1_clipped = metric_bad(dmap, gt, 1, dispLevels,false);
+		float bad2_clipped = metric_bad(dmap, gt, 2, dispLevels,false);
+		float bad3_clipped = metric_bad(dmap, gt, 3, dispLevels,false);
+		float bad4_clipped = metric_bad(dmap, gt, 4, dispLevels,false);
+		float bad5_clipped = metric_bad(dmap, gt, 5, dispLevels,false);	
 		
-		float D1ALL = 0;//metric_D1ALL(dmap, gt); 	
+		float D1ALL = metric_D1ALL(dmap, gt); 	
 		float density = metric_density(dmap, gt);     
 		
 		writeInfoResults(resultsFile_String, methodName, versionString, resultsFile_String, dispImg_string, avgerr, rmse, bad1, bad2, bad3, bad4, bad5,D1ALL,density,avgerr_clipped, rmse_clipped, bad1_clipped, bad2_clipped, bad3_clipped, bad4_clipped, bad5_clipped);
 		
-		if(true){
+		if(false){
 			writeVisError(gt, dmap,dispLevels);
 		}
 	}
@@ -679,7 +639,7 @@ void processMethod(const char * methodName) {
       for(int versionIndex = 0 ; versionIndex < 2;versionIndex++){
 
         versionString = genVersionString(versionIndex, useOldGradCost, sparse, useBilateral);
- 	mkdir2(rootFolder+"/kitti2015/training/disp_" + versionString);
+ 	    mkdir2(rootFolder+"/kitti2015/training/disp_" + versionString);
         int dispLevels = 255;
         if(isResultsCompMode){
           std::string leftImg_string = rootFolder+"/kitti2015/training/image_2/" + zeroPadded(std::to_string(k), 6) + "_10.png";
@@ -688,18 +648,12 @@ void processMethod(const char * methodName) {
           std::string dispImgVis_string = rootFolder+"/kitti2015/training/disp_" + versionString + "/visualization_" + zeroPadded(std::to_string(k), 6) + "_10.png";
           int sizes[5] = {1,0,0,0};
 		  
-	  int nColors = (*sparse)?16:8;
+		  int nColors = (*sparse)?16:8;
 		  
           run(* sparse, methodName, versionString, resultsFile_String,  leftImg_string,rightImg_string,dispImg_string,dispImgVis_string,dispLevels,3,.8,0,nColors,sizes,4,10,21,1,minConfidencePercentage,allowanceSearchRange);
         }
         if(isMetricCompMode){
           std::string dispImg_string = rootFolder+"/kitti2015/training/disp_" + versionString + "/" + zeroPadded(std::to_string(k), 6) + "_10.png";
-
-	 // dispImg_string = rootFolder+"/kitti2015/training/disp_" + versionString + "/" + zeroPadded(std::to_string(k), 6) + "_sgbm2.pfm"; // !!!!!!!!!!!!!!!!!!!!!!!!!!
-	 // dispImg_string = rootFolder+"/kitti2015/training/image_2/" + zeroPadded(std::to_string(k), 6) + "_10_dispElas.pfm"; // !!!!!!!!!!!!!!!!!!!!!!!!!!
-	   dispImg_string = rootFolder+"/kitti2015/training/disp_" + versionString + "/" + zeroPadded(std::to_string(k), 6) + "_SED.png"; // !!!!!!!!!!!!!!!!!!!!!!!!!!
-
-
           std::string gt_string = rootFolder+"/kitti2015/training/disp_noc_0/" + zeroPadded(std::to_string(k), 6) + "_10.png";
           calcMetrics(methodName,versionString,resultsFileAccuracy_String, dispImg_string,gt_string,dispLevels);
         }
