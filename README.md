@@ -6,12 +6,14 @@ To run the implementation, perform the subsequently listed steps.
 
 ### Download data sets
 
-Download one or more of the folowing datasets:
+Download one or more of the folowing data sets:
 * Middlebury - http://vision.middlebury.edu/stereo/submit3/zip/MiddEval3-data-F.zip
 * Kitti2015 - http://www.cvlibs.net/download.php?file=data_scene_flow.zip
 * Synthgarden - https://gitlab.inf.ed.ac.uk/3DRMS/Challenge2018/tree/master/training
 
-The implementation expects the following folder structure and files to run on the Middlebury dataset:
+The implementation expects the following folder structure and files to run...
+
+... on the Middlebury dataset:
 
 ```
 datasets/middlebry/trainingF/<Testcase>/im0.png (Left image of stereo pair)
@@ -20,7 +22,7 @@ datasets/middlebry/trainingF/<Testcase>/disp0GT.pfm (Ground truth)
 
 ```
 
-The implementation expects the following folder structure and files to run on the Kitti2015 dataset:
+... on the Kitti2015 dataset:
 
 ```
 datasets/kitti2015/training/image_2/<ImageID>.png (Left image of stereo pair)
@@ -28,7 +30,7 @@ datasets/kitti2015/training/image_2/<ImageID>.png (Right image of stereo pair)
 datasets/kitti2015/training/disp_noc/<ImageID>.png (Ground truth)
 
 ```
-The implementation expects the following folder structure and files to run on the Synthgarden dataset:
+... on the Synthgarden dataset:
 
 ```
 datasets/synthgarden/training/<subset>/vcam_0/vcam_0_<ImageID>_undist.png (Left image of stereo pair)
