@@ -6,7 +6,7 @@ To run the implementation, perform the subsequently listed steps.
 
 ### Download data sets
 
-Download one or more of the folowing data sets:
+Download one or more of the following data sets:
 * Middlebury - http://vision.middlebury.edu/stereo/submit3/zip/MiddEval3-data-F.zip
 * Kitti2015 - http://www.cvlibs.net/download.php?file=data_scene_flow.zip
 * Synthgarden - https://gitlab.inf.ed.ac.uk/3DRMS/Challenge2018/tree/master/training
