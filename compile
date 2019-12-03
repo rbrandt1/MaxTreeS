@@ -1,0 +1,2 @@
+#!/bin/bash
+g++ core.cpp benchmark.cpp opencv_pfm.cpp -std=gnu++11 -o main `pkg-config --cflags --libs opencv`

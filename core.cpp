@@ -27,12 +27,12 @@
 // Type definition of a Max-Tree node
 typedef struct MaxNode	{
   int parent;
-  int Area;
+  short Area;
   bool levelroot;
-  int dispL;
-  int dispR;
-  int dispLprev;
-  int dispRprev;
+  short dispL;
+  short dispR;
+  short dispLprev;
+  short dispRprev;
   uchar nChildren;
   int begIndex;
   int matchId;
@@ -52,7 +52,7 @@ typedef cv::Vec<float,2> Vec2f;
 /****** Parameters ******/
 
 float alpha = .8; // alpha
-int minAreaMatchedFineTopNode = 0; // omega_alpha
+int minAreaMatchedFineTopNode = 3; // omega_alpha
 float factorMax = 3; // omega_beta = image_width/factorMax
 int nColors = 5; // q
 int sizes[16] = {1,0,0,0}; // S, appended with 0,0 which correspond to the refinement step
@@ -108,6 +108,46 @@ void clear2Dvect(std::vector<std::vector<int>> vect) {
 	}
 	vect.clear();
 }
+
+
+
+
+
+void writeVisDispmap(cv::Mat img, std::string str, float dispLevels) {
+
+dispLevels = 70;
+
+  for (int r = 0; r < img.rows; r++) {
+    for (int c = 0; c < img.cols; c++) {
+      img.at < float > (r, c) = img.at < float > (r, c) > 100000 ? 0 : img.at < float > (r, c);
+    }
+  }
+  img = img * 255.0 / dispLevels;
+
+  img.convertTo(img, CV_8U);
+  cv::applyColorMap(img, img, cv::COLORMAP_JET);
+  cv::imwrite(str.c_str(), img);
+
+}
+
+
+void writeLine(std::string filename,std::string line){
+	std::ofstream ofs;
+	ofs.open (filename, std::ofstream::out | std::ofstream::app);
+
+	ofs << line << std::endl;
+
+	ofs.close();
+}
+void clearFile(std::string filename){
+	std::ofstream ofs;
+	ofs.open(filename, std::ofstream::out | std::ofstream::trunc);
+	ofs.close();
+}
+
+
+
+
 
 /**
  *
@@ -289,32 +329,6 @@ void calcDispSearchRange(MaxNode * tree, int index, int * res, int dispLevels, i
 	neighBottom.clear();
 }
 
-/**
- *
- * Save a disparity map
- *
- * @param   cv::Mat dispMap The disparity map to save.
- *  @param  int disparityLevelsResized The maximum disparity offset.
- *
- */
-void saveDispmap(cv::Mat dispMap, int disparityLevelsResized) {
-
-	for (int r = 0; r < dispMap.rows; r++) {
-		for (int c = 0; c < dispMap.cols; c++) {
-			if (dispMap.at<float>(r, c) < 0) {
-				dispMap.at<float>(r, c) =
-						std::numeric_limits<float>::infinity();
-			}
-		}
-	}
-
-	std::string str = "";
-	str.append(outFolderGV);
-	str.append("/");
-	str.append(filenameOutput);
-	str.append(".pfm");
-	opencv_pfm::imwrite_pfm(str.c_str(), dispMap,1,1);
-}
 
 /**
  *
@@ -472,11 +486,15 @@ void clearCurLevel(int width, int height, MaxNode* tree) {
 }
 
 
-void nthChildrenSide(int height, const std::vector<std::vector<int> >& topsL,
-		int n, std::vector<std::vector<int> >* topsLnTh, MaxNode* treeLeftHor) {
 
-	for (int r = 0; r < height; r++) {
 
+
+class NthChildrenSide : public cv::ParallelLoopBody{
+public:
+  NthChildrenSide ( std::vector<std::vector<int> >& topsL, int n, std::vector<std::vector<int> >* topsLnTh, MaxNode* treeLeftHor )  : topsL(topsL),n(n), topsLnTh(topsLnTh), treeLeftHor(treeLeftHor){}
+  virtual void operator()(const cv::Range & range) const {
+    for (int r = range.start; r < range.end; r++){
+	
 		// get unique nth tops
 
 		std::vector<int> LevelNChildren;
@@ -534,10 +552,19 @@ void nthChildrenSide(int height, const std::vector<std::vector<int> >& topsL,
 		LevelNChildren.clear();
 		allChildren.clear();
 
-		topsLnTh->push_back(rowLNew);
-	}
+		topsLnTh->at(r) = rowLNew;
+     }
+  }
+  NthChildrenSide& operator=(const NthChildrenSide &) {
+    return *this;
+  };
+private:
+ std::vector<std::vector<int> >& topsL;
+ int n;
+ std::vector<std::vector<int> >* topsLnTh;
+ MaxNode* treeLeftHor ;
+};
 
-}
 
 /**
  *
@@ -553,13 +580,55 @@ void nthChildrenSide(int height, const std::vector<std::vector<int> >& topsL,
  * @param  int height Height of the input images.
  *
  */
+
+
 void getNthTops(std::vector<std::vector<int>> topsR,
 		std::vector<std::vector<int>> topsL, int n,
 		std::vector<std::vector<int>> * topsRnTh,
 		std::vector<std::vector<int>> * topsLnTh, MaxNode * treeRightHor,
 		MaxNode * treeLeftHor, int height) {
-	nthChildrenSide(height, topsL, n, topsLnTh, treeLeftHor);
-	nthChildrenSide(height, topsR, n, topsRnTh, treeRightHor);
+	
+	if(n == 0){
+ 		for (int r = 0; r < height; r++){
+			std::vector<int> LevelNChildrenL;
+			for (uint c = 0; c < topsL[r].size(); c++) {
+				int current = topsL[r][c];
+				while (current != ROOT && !treeLeftHor[current].levelroot) {
+					current = treeLeftHor[current].parent;
+				}
+				if (current != ROOT){
+					LevelNChildrenL.push_back(current);
+					treeLeftHor[current].curLevel=true;
+				}
+				
+			}
+			std::vector<int> LevelNChildrenR;
+			for (uint c = 0; c < topsR[r].size(); c++) {
+				int current = topsR[r][c];
+				while (current != ROOT && !treeRightHor[current].levelroot) {
+					current = treeRightHor[current].parent;
+				}
+				if (current != ROOT){
+					LevelNChildrenR.push_back(current);
+					treeRightHor[current].curLevel=true;
+				}
+				
+			}
+			topsLnTh->at(r) = LevelNChildrenL;
+			topsRnTh->at(r) = LevelNChildrenR;
+		}
+	
+
+	}else{
+		NthChildrenSide nthChildrenSide(topsL, n, topsLnTh, treeLeftHor);
+		cv::parallel_for_(cv::Range(0, height), nthChildrenSide);
+
+		NthChildrenSide nthChildrenSide2(topsR, n, topsRnTh, treeRightHor);
+		cv::parallel_for_(cv::Range(0, height), nthChildrenSide2);
+	}
+
+
+
 }
 
 class MatchTopsParallelbody: public cv::ParallelLoopBody {
@@ -596,10 +665,10 @@ public:
 			std::vector<Match> matchesRowR(topsR[r].size());
 
 			for (uint i = 0; i < matchesRowL.size(); i++) {
-				matchesRowL[i].cost = std::numeric_limits<double>::infinity();
+				matchesRowL[i].cost = std::numeric_limits<float>::infinity();
 			}
 			for (uint i = 0; i < matchesRowR.size(); i++) {
-				matchesRowR[i].cost = std::numeric_limits<double>::infinity();
+				matchesRowR[i].cost = std::numeric_limits<float>::infinity();
 			}
 
 			// Calculate matching costs for row
@@ -664,14 +733,8 @@ public:
 														&& c2 != 0))) {
 
 							if(sparse){
-									if(treeLeftHor[index].Area > 4){
-										dispMap->at<float>(r, c2+2) = min;
-										dispMap->at<float>(r, c2_end-2) = min;
-									}else{
-										dispMap->at<float>(r, c2) = min;
-										dispMap->at<float>(r, c2_end) = min;
-									}
-
+								dispMap->at<float>(r, c2) = res[0]; //res[0] == min ? min : -1;min;
+								dispMap->at<float>(r, c2_end) = res[1]; //res[1] == min ? min : -1; min;
 							}else{
 								for (int column = c2; column <= c2_end; column++) {
 									dispMap->at<float>(r, column) = min;
@@ -793,14 +856,14 @@ public:
 			for (uint LvInd = 0; LvInd < topsL[r].size(); LvInd++) {
 
 				if (matchesRowL[LvInd].cost
-						== std::numeric_limits<double>::infinity()) {
+						== std::numeric_limits<float>::infinity()) {
 					continue;
 				}
 
 				Match L = matchesRowL[LvInd];
 
 				if (matchesRowR[L.match].cost
-						== std::numeric_limits<double>::infinity())
+						== std::numeric_limits<float>::infinity())
 					continue;
 
 				Match R = matchesRowR[L.match];
@@ -1010,6 +1073,56 @@ public:
 	}
 };
 
+
+class NoiseFilter : public cv::ParallelLoopBody{
+public:
+  NoiseFilter (short * dispMap,short * dispMapFinal,int cols,int rows, const int kernel)
+  :  dispMap(dispMap),dispMapFinal(dispMapFinal),cols(cols),rows(rows), kernel(kernel){}
+  virtual void operator ()(const cv::Range& range) const {
+	for (int r = range.start; r < range.end; r++) {
+	    for (int c = 0; c < cols; c++) {
+	
+		float curval = dispMap[cols * (r) + (c)];
+		if (curval > 1) {
+			int total = 0;
+			int totalMean = 0;
+			int rBeg = r - kernel > 0 ? r - kernel : r;
+			int cBeg = c - kernel > 0 ? c - kernel : c;
+			int cEnd = (c + kernel <= cols ? c + kernel : c);
+			int rEnd = (r + kernel <= rows ? r + kernel : r);
+		  	for (int cOff = cBeg; cOff < cEnd; cOff++) {
+				short absCoff = abs(cOff-c);
+				for (int rOff = rBeg; rOff < rEnd; rOff++) {
+					short val = dispMap[cols * (rOff) + (cOff)];
+					if (val > 1) {
+					    if (abs(val - curval) <= 3) {
+						total++;
+					    }
+					    else {
+						totalMean++;
+					    }
+					}
+			    	}
+			}
+
+			if (totalMean != 0 && total < totalMean)
+			    dispMapFinal[cols * (r) + (c)] = -1;
+		}
+	   }
+	}
+}
+NoiseFilter& operator=(const NoiseFilter &) {
+  return *this;
+};
+private:
+	short * dispMap;
+	short * dispMapFinal;
+	int cols;
+	int rows;
+	const int kernel;
+};
+
+
 /**
  *
  * Build a max tree from an image
@@ -1028,40 +1141,36 @@ MaxNode* buildTree(cv::Mat gval){
 	return node;
 }
 
-/****** Main function ******/
 
-int main (int argc, char *argv[]){
+cv::Mat work(cv::Mat imgLeft, cv::Mat imgRight,bool sparse2,float alpha2,int minAreaMatchedFineTopNode2,int maxAreaMatchedFineTopNode2,int nColors2,int * sizes2, int total2,uint kernelCostComp2,int kernelCostVolume, int everyNthRow2, int disparityLevels2,float minConfidencePercentage2, float allowanceSearchRange2){
+	
+	sparse = sparse2;
 
-	const char *filenameLeftImage = argv[1];
-	const char *filenameRightImage = argv[2];
-	int maxDisplacement = atoi(argv[3]);
-	const char *outFolder = argv[4];
-	filenameOutput = argv[5];
-
-	double startTotal = getWallTime();
-
-	outFolderGV = outFolder;
-	disparityLevels = maxDisplacement;
+	disparityLevels = disparityLevels2;
 	cv::Mat imgLeftResized;
 	cv::Mat imgRightResized;
-	int width, height;
+
 	cv::Mat ones;
 
-	// read left & right images
-
-	cv::Mat imgLeft = cv::imread(filenameLeftImage, -1);
-	cv::Mat imgRight = cv::imread(filenameRightImage, -1);
-
-	maxAreaMatchedFineTopNode = imgLeft.cols/factorMax;
+	maxAreaMatchedFineTopNode = maxAreaMatchedFineTopNode2;
 
 	// resize left & right images
 
 	disparityLevelsResized = disparityLevels;
 
+	int width, height;
+	
+	// read left & right images
+
+	width = imgLeft.cols;
+	height = imgLeft.rows;
+
+	// resize left & right images
+
+
 	// convert left & right images to grayscale
 
-	cv::cvtColor(imgLeft, imgLeft, cv::COLOR_RGB2GRAY);
-	cv::cvtColor(imgRight, imgRight, cv::COLOR_RGB2GRAY);
+	double startTotal = getWallTime();
 
 	cv::medianBlur(imgLeft,imgLeft,5);
 	cv::medianBlur(imgRight,imgRight,5);
@@ -1131,11 +1240,7 @@ int main (int argc, char *argv[]){
 	cv::Mat imgRight2;
 	cv::merge(imgRightChannelsL, imgRight2);
 
-
 	// create max trees
-
-	width = imgLeft.cols;
-	height = imgLeft.rows;
 
 	treeLeftHor = buildTree(sobelLeft3ucharHor);
 	treeRightHor = buildTree(sobelRight3ucharHor);
@@ -1150,10 +1255,10 @@ int main (int argc, char *argv[]){
 	std::vector<std::vector<int>> topsL;
 	std::vector<std::vector<int>> topsR;
 
-	std::vector<std::vector<int>> topsLnTh;
-	std::vector<std::vector<int>> topsRnTh;
-	std::vector<std::vector<int>> topsLnThPrev;
-	std::vector<std::vector<int>> topsRnThPrev;
+	std::vector<std::vector<int>> topsLnTh(height);
+	std::vector<std::vector<int>> topsRnTh(height);
+	std::vector<std::vector<int>> topsLnThPrev(height);
+	std::vector<std::vector<int>> topsRnThPrev(height);
 
 	getTops(treeRightHor, treeLeftHor, width, height, &topsL, &topsR);
 
@@ -1167,66 +1272,59 @@ int main (int argc, char *argv[]){
 
 	for (int i = 0; i < total; i++) {
 
+		if(i == total - 2)
+			continue;
+
 		for(int ctr = 0;ctr< width*height;ctr++){
 			treeLeftHor[ctr].dispLprev =  treeLeftHor[ctr].dispL;
 			treeLeftHor[ctr].dispRprev =  treeLeftHor[ctr].dispR;
 			treeRightHor[ctr].dispLprev =  treeRightHor[ctr].dispL;
 			treeRightHor[ctr].dispRprev =  treeRightHor[ctr].dispR;
 		}
-
+		
 		clearPrevCurLevel(width, height, treeLeftHor);
 		clearPrevCurLevel(width, height, treeRightHor);
 		clearCurLevel(width, height, treeLeftHor);
 		clearCurLevel(width, height, treeRightHor);
 
-		getNthTops(topsR, topsL, sizes[i], &topsRnTh, &topsLnTh, treeRightHor,
-				treeLeftHor, height);
-
-		 matchNodes(treeRightHor, treeLeftHor, disparityLevels, imgRight2, imgLeft2, topsLnTh, topsRnTh, i, &dispMap);
-
-		if (i > 0) {
-			clear2Dvect(topsLnThPrev);
-			clear2Dvect(topsRnThPrev);
+		if(i < 1 || sizes[i-1] != 0){
+			getNthTops(topsR, topsL, sizes[i], &topsRnTh, &topsLnTh, treeRightHor,treeLeftHor, height);
 		}
 
-		topsLnThPrev = topsLnTh;
-		topsRnThPrev = topsRnTh;
 
-		topsLnTh = (std::vector<std::vector<int>>) 0;
-		topsRnTh = (std::vector<std::vector<int>>) 0;
+		matchNodes(treeRightHor, treeLeftHor, disparityLevels, imgRight2, imgLeft2, topsLnTh, topsRnTh, i, &dispMap);
+	
+		if(sizes[i] == 1){
+		
+			if (i > 0) {
+				clear2Dvect(topsLnThPrev);
+				clear2Dvect(topsRnThPrev);
+			}
+
+			topsLnThPrev = topsLnTh;
+			topsRnThPrev = topsRnTh;
+
+			topsLnTh = std::vector<std::vector<int>>(height);
+			topsRnTh = std::vector<std::vector<int>>(height);
+		}
 	}
+
 
 	if (sparse) {
-		int kernel =21;
-		cv::Mat dispMapFinal = dispMap.clone();
+		cv::Mat dispMapFinal;
+		cv::Mat dispMapShort;
+		dispMap.convertTo(dispMapFinal, CV_16S);
+		dispMap.convertTo(dispMapShort, CV_16S);
 
-		for(int r = 0;r<dispMap.rows-0;r++){
-			for(int c = 0;c<dispMap.cols-0;c++){
-					float curval = dispMap.at<float>(r,c);
-					if(curval != -1){
-						int total = 0;
-						int totalMean = 0;
-						for(int rOff = r-kernel>0?-kernel:0;rOff<(r+kernel<=dispMap.rows?kernel:0);rOff++){
-							for(int cOff = c-kernel>0?-kernel:0;cOff<(c+kernel<=dispMap.cols?kernel:0);cOff++){
-								if(dispMap.at<float>(r+rOff,c+cOff) != -1){
-									if(abs(dispMap.at<float>(r+rOff,c+cOff) - curval) <= abs(cOff)){
-										total++;
-									}else{
-										totalMean++;
-									}
-								}
-							}
-						}
-						if(totalMean != 0 && total < totalMean)
-							dispMapFinal.at<float>(r,c) = -1;
-					}
-			}
-		}
-		dispMap = dispMapFinal;
+		short *dispMapData = (short*)(dispMapShort.data);
+		short *dispMapFinalData = (short*)(dispMapFinal.data);
+
+		NoiseFilter noiseFilter2(dispMapData,dispMapFinalData,dispMapShort.cols,dispMapShort.rows, 21);
+		cv::parallel_for_(cv::Range(0, dispMapShort.rows), noiseFilter2);
+		dispMap.release();
+
+		dispMapFinal.convertTo(dispMap, CV_32F);
 	}
-
-	saveDispmap(dispMap, disparityLevelsResized);
-
 
 	// Free memory
 
@@ -1239,17 +1337,11 @@ int main (int argc, char *argv[]){
 	sobelLeftVert.release();
 	sobelRightHor.release();
 	sobelLeftHor.release();
-	dispMap.release();
 	free(treeLeftHor);
 	free(treeRightHor);
 
-	double endTotal = getWallTime();
-	double totalTime = (endTotal - startTotal);
-	double MPS = ((float) width / (float) 1000.0)
-			* ((float) height / (float) 1000.0);
+	dispMap.convertTo(dispMap, CV_32F);
 
-	printf("runtime: %.4fs (%.4f/MP)\n", totalTime, totalTime / MPS);
+	return dispMap;
 
-
-	return 0;
 }

@@ -4,55 +4,58 @@
 
 To run the implementation, perform the subsequently listed steps.
 
-### Edit parameters
+### Download data sets
 
-The parameters of the method are assumed to be kept constant. Therefore, values are assigned to them in code. 
-The parameters of the method are assigned in the file `alg-stereoMaxTree/index.cpp` in the region marked 'Parameters'.
-
-### Execute the implementation
-
-#### Middlebury dataset
+Download one or more of the folowing datasets:
+* Middlebury - http://vision.middlebury.edu/stereo/submit3/zip/MiddEval3-data-F.zip
+* Kitti2015 - http://www.cvlibs.net/download.php?file=data_scene_flow.zip
+* Synthgarden - https://gitlab.inf.ed.ac.uk/3DRMS/Challenge2018/tree/master/training
 
 The implementation expects the following folder structure and files to run on the Middlebury dataset:
 
 ```
-alg-stereoMaxTree
-trainingF/<Testcase>/im0.png (Left image of stereo pair)
-trainingF/<Testcase>/im1.png (Right image of stereo pair)
-trainingF/<Testcase>/calib.txt (Text file containing a line indicating the maximum disparity in the image pair, i.e. ndisp=<int>)
+datasets/middlebry/trainingF/<Testcase>/im0.png (Left image of stereo pair)
+datasets/middlebry/trainingF/<Testcase>/im1.png (Right image of stereo pair)
+datasets/middlebry/trainingF/<Testcase>/disp0GT.pfm (Ground truth)
 
 ```
 
-When the said files and folders are in place, the implementation can be run by running the command
+The implementation expects the following folder structure and files to run on the Kitti2015 dataset:
 
 ```
-sudo ./run_middleburry <Testcase>
-```
-
-A disparity map with filename ``disp0MaxTreeS_s.pfm`` will be written in the ``trainingF/<Testcase>/`` folder. 
-The runtime will be printed in the console.
-
-
-#### Trimbot2020 dataset
-
-The implementation expects the following folder structure and files to run on the trimbot dataset:
+datasets/kitti2015/training/image_2/<ImageID>.png (Left image of stereo pair)
+datasets/kitti2015/training/image_2/<ImageID>.png (Right image of stereo pair)
+datasets/kitti2015/training/disp_noc/<ImageID>.png (Ground truth)
 
 ```
-alg-stereoMaxTree
-trimbotF/<Dataset folder>/vcam_0_f<image number>_undist.png (Left image of stereo pair)
-trimbotF/<dataset folder>/vcam_1_f<image number>_undist.png (Right image of stereo pair)
+The implementation expects the following folder structure and files to run on the Synthgarden dataset:
+
+```
+datasets/synthgarden/training/<subset>/vcam_0/vcam_0_<ImageID>_undist.png (Left image of stereo pair)
+datasets/synthgarden/training/<subset>/vcam_1/vcam_1_<ImageID>_undist.png (Right image of stereo pair)
+datasets/synthgarden/training/<subset>/vcam_0/vcam_0_<ImageID>_dmap.bin (Ground truth)
 
 ```
 
-When the said files and folders are in place, the implementation can be run on all images in <Dataset folder> by running the command
+
+### Edit parameters
+
+The parameters of the method are assumed to be kept constant. Therefore, values are assigned to them in code. 
+The parameters of the method are assigned in the file `benchmark.cpp` in run() function calls'.
+
+### Execute implementation
+
+The implementation can be run by executing the command
 
 ```
-sudo ./run_trimbot <Dataset folder>
+sudo ./main [all,middleburry,kitti2015,synthgarden] [both,metric,result]
 ```
 
-Disparity maps with filenames ``<image number>.pfm`` will be written in the ``trimbotF/<Dataset>/`` folder. 
-The runtime will be printed in the console.
-
+The first argument of the run command specifies on which data set the method should be run. When ``all`` is specified, the method is run on all data sets.
+When ``result`` is added to the run command, disparity maps are generated. When ``metric`` is added to the run command, disparity maps are evaluated.
+When ``both`` is added to the run command, disparity maps are both generated and evaluated. 
+The accuracy of produced disparity maps, as well as runtime information,  will be printed on the screen and stored in CSV files.
+Metrics computed on Middlebury are calculated without filtering occluded pixels! 
 
 ## Dependencies
 
@@ -60,4 +63,3 @@ The implementation is dependent on the following.
 
 * ``opencv/opencv`` (tested on version 4.1.0)
 * ``Iorethan/opencv_pfm``
-* ``FreeImage``
