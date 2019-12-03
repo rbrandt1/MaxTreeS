@@ -26,7 +26,7 @@ datasets/middlebry/trainingF/<Testcase>/disp0GT.pfm (Ground truth)
 
 ```
 datasets/kitti2015/training/image_2/<ImageID>.png (Left image of stereo pair)
-datasets/kitti2015/training/image_2/<ImageID>.png (Right image of stereo pair)
+datasets/kitti2015/training/image_3/<ImageID>.png (Right image of stereo pair)
 datasets/kitti2015/training/disp_noc/<ImageID>.png (Ground truth)
 
 ```
