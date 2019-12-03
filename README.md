@@ -43,7 +43,7 @@ datasets/synthgarden/training/<subset>/vcam_0/vcam_0_<ImageID>_dmap.bin (Ground 
 ### Edit parameters
 
 The parameters of the method are assumed to be kept constant. Therefore, values are assigned to them in code. 
-The parameters of the method are assigned in the file `benchmark.cpp` in run() function calls'.
+The parameters of the method are assigned in the file `core.cpp`, and in run() function calls' in `benchmark.cpp`.
 
 ### Execute implementation
 
