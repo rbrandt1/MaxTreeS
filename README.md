@@ -4,7 +4,7 @@ Three versions of MTStereo are stored in this repository:
 
 * Version 1.0, implementing a method proposed in the paper entitled "Efficient binocular stereo correspondence matching with 1-D Max-Trees" is stored in the folder ``MaxTreeS-Version_1.0``.
 * Version 2.0, implementing a method proposed in the paper entitled "Efficient and Accurate Depth Estimation with 1-D Max-Tree Matching" is stored in the folder ``MaxTreeS-version_2.0``.
-* A ROS-node version of MTStereo optimized for scenes containing plants, and examples of point clouds it can produce is stored in the folder entitled ``MaxTreeS-version_ROS``.
+* A ROS-node version of MTStereo optimized for scenes containing plants is stored in the folder entitled ``MaxTreeS-version_ROS``.
 
 ---
 # Version 1.0: Efficient binocular stereo correspondence matching with 1-D Max-Trees
@@ -81,6 +81,63 @@ The implementation is dependent on the following.
 ## Getting Started
 
 To run the implementation, perform the subsequently listed steps.
+
+### Download data sets
+
+Download one or more of the following data sets:
+* Middlebury - http://vision.middlebury.edu/stereo/submit3/zip/MiddEval3-data-F.zip
+* Kitti2015 - http://www.cvlibs.net/download.php?file=data_scene_flow.zip
+* Driving - https://lmb.informatik.uni-freiburg.de/resources/datasets/SceneFlowDatasets.en.html
+* Monkaa - https://lmb.informatik.uni-freiburg.de/resources/datasets/SceneFlowDatasets.en.html
+* Flyingthings3D - https://lmb.informatik.uni-freiburg.de/resources/datasets/SceneFlowDatasets.en.html
+
+The implementation expects the following folder structure and files to run...
+
+... on the Middlebury dataset:
+
+```
+datasets/middlebry/trainingF/<Testcase>/im0.png (Left image of stereo pair)
+datasets/middlebry/trainingF/<Testcase>/im1.png (Right image of stereo pair)
+datasets/middlebry/trainingF/<Testcase>/disp0GT.pfm (Ground truth)
+
+```
+
+... on the Kitti2015 dataset:
+
+```
+datasets/kitti2015/training/image_0/<ImageID>.png (Left image of stereo pair)
+datasets/kitti2015/training/image_1/<ImageID>.png (Right image of stereo pair)
+datasets/kitti2015/training/disp_noc/<ImageID>.png (Ground truth)
+
+```
+
+
+... on the Driving dataset:
+
+```
+datasets/driving/frames_cleanpass/35mm_focallength/<forwards_or_backwards>/fast/left/<ImageID>.png (Left image of stereo pair)
+datasets/driving/frames_cleanpass/35mm_focallength/<forwards_or_backwards>/fast/right/<ImageID>.png (Right image of stereo pair)
+datasets/driving/disparity/35mm_focallength/<forwards_or_backwards>/fast/left/<ImageID>.pfm (Ground truth)
+
+```
+
+... on the Monkaa dataset:
+
+```
+datasets/monkaa/frames_cleanpass/<subset>/left/<ImageID>.png (Left image of stereo pair)
+datasets/monkaa/frames_cleanpass/<subset>/right/<ImageID>.png (Right image of stereo pair)
+datasets/monkaa/disparity/<subset>/left/<ImageID>.pfm (Ground truth)
+
+```
+
+... on the Flyingthings3D dataset:
+
+```
+datasets/flyingthings3D/TEST/<...>/<...>/left/<ImageID>.png (Left image of stereo pair)
+datasets/flyingthings3D/TEST/<...>/<...>/right/<ImageID>.png (Right image of stereo pair)
+datasets/flyingthings3D/disparity/TEST/<...>/<...>/left/<ImageID>.pfm (Ground truth)
+
+```
 
 ### Edit parameters
 
