@@ -87,7 +87,7 @@ year = "2020",
 issn = "0167-8655",
 doi = "https://doi.org/10.1016/j.patrec.2020.02.019",
 url = "http://www.sciencedirect.com/science/article/pii/S0167865520300581",
-author = "Rafaël Brandt and Nicola Strisciuglio and Nicolai Petkov and Michael H.F. Wilkinson",
+author = "Rafaël Brandt and Nicola Strisciuglio and Nicolai Petkov and Michael H.F. Wilkinson"
 }
 ```
 
