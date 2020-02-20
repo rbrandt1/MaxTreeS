@@ -75,6 +75,22 @@ The implementation is dependent on the following.
 * ``opencv/opencv`` (tested on version 4.1.0)
 * ``Iorethan/opencv_pfm``
 
+## Terms of use
+
+When you use our implementation in your research, you should cite the following paper:
+
+```
+@article{Brandt2020Efficient,
+title = "Efficient binocular stereo correspondence matching with 1-D Max-Trees",
+journal = "Pattern Recognition Letters",
+year = "2020",
+issn = "0167-8655",
+doi = "https://doi.org/10.1016/j.patrec.2020.02.019",
+url = "http://www.sciencedirect.com/science/article/pii/S0167865520300581",
+author = "Rafaël Brandt and Nicola Strisciuglio and Nicolai Petkov and Michael H.F. Wilkinson",
+}
+```
+
 ---
 # Version 2.0: Efficient and Accurate Depth Estimation with 1-D Max-Tree Matching
 
