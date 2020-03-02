@@ -24,6 +24,8 @@
 
 #define ROOT				(-1)
 
+#define MAXVAL				100000
+
 // Type definition of a Max-Tree node
 typedef struct MaxNode	{
   int parent;
@@ -55,7 +57,7 @@ float alpha = .8; // alpha
 int minAreaMatchedFineTopNode = 3; // omega_alpha
 float factorMax = 3; // omega_beta = image_width/factorMax
 int nColors = 5; // q
-int sizes[16] = {1,0,0,0}; // S, appended with 0,0 which correspond to the refinement step
+int sizes[4] = {1,0,0,0}; // S, appended with 0,0 which correspond to the refinement step
 int total = 4; // #S + 2
 uint kernelCostComp = 6; // omega_delta
 bool sparse = true; // produce sparse (true) or semi-dense (false) disparity map
@@ -72,7 +74,6 @@ float step = 1;
 bool useLRCHECK = true;
 bool useBlurOnG = true;
 bool skipsides = true;
-bool Verydense = false;
 int disparityLevelsResized;
 const char* filenameOutput;
 int disparityLevels;
@@ -95,19 +96,7 @@ double getWallTime(){
     return (double)time.tv_sec + (double)time.tv_usec * .000001;
 }
 
-/**
- *
- * Clear (i.e. deallocate the memory) of a 2D vector
- *
- * @param    std::vector<std::vector<int>> vect  The vector to clear.
- *
- */
-void clear2Dvect(std::vector<std::vector<int>> vect) {
-	for (uint i = 0; i < vect.size(); i++) {
-		vect[i].clear();
-	}
-	vect.clear();
-}
+
 
 
 
@@ -119,7 +108,7 @@ dispLevels = 70;
 
   for (int r = 0; r < img.rows; r++) {
     for (int c = 0; c < img.cols; c++) {
-      img.at < float > (r, c) = img.at < float > (r, c) > 100000 ? 0 : img.at < float > (r, c);
+      img.at < float > (r, c) = img.at < float > (r, c) > MAXVAL ? 0 : img.at < float > (r, c);
     }
   }
   img = img * 255.0 / dispLevels;
@@ -1297,8 +1286,8 @@ cv::Mat work(cv::Mat imgLeft, cv::Mat imgRight,bool sparse2,float alpha2,int min
 		if(sizes[i] == 1){
 		
 			if (i > 0) {
-				clear2Dvect(topsLnThPrev);
-				clear2Dvect(topsRnThPrev);
+				topsLnThPrev.clear();
+				topsRnThPrev.clear();
 			}
 
 			topsLnThPrev = topsLnTh;
