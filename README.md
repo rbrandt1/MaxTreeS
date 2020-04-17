@@ -7,7 +7,7 @@ Three versions of MTStereo are stored in this repository:
 * A ROS-node version of MTStereo optimized for scenes containing plants is stored in the folder entitled ``MaxTreeS-version_ROS``.
 
 ---
-# Version 1.0: Efficient binocular stereo correspondence matching with 1-D Max-Trees
+# MTStereo 1.0: Efficient binocular stereo correspondence matching with 1-D Max-Trees
 
 ## Getting Started
 
@@ -92,7 +92,7 @@ author = "Rafaël Brandt and Nicola Strisciuglio and Nicolai Petkov and Michael 
 ```
 
 ---
-# Version 2.0: Efficient and Accurate Depth Estimation with 1-D Max-Tree Matching
+# MTStereo 2.0: improved accuracy of stereo depth estimation with Max-trees
 
 ## Getting Started
 
