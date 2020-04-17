@@ -24,15 +24,29 @@ float allowanceSearchRange;
 
 cv::Mat costVolume[1000];
 
-bool printTimesBool = false;
+bool printTimesBool = true;
 
 bool saveStageImages = false;
 
 bool useLRCHECK = true;
 float uniquenessRatio = 12;
 
+bool print1 = false;
+bool print2 = false;
+bool print3 = false;
+bool print4 = false;
+bool print5 = false;
+bool print6 = false;
+bool print7 = false;
+bool print8 = false;
+bool print9 = false;
 
 
+int timeCostVolAcess_start = 0;
+int timeCostVolAcess_end = 0;
+
+double timeCostVolAcess_totaltime = 0;
+double timeCostVolAcess_totaltime_2 = 0;
 
 /****** Functions ******/
 
@@ -77,8 +91,12 @@ public:
 	          }
 	          dispMap.ptr<short>(r)[c] = indexMin_Left;
           }
-          
+          if(print1){print1=false;printf("Pixelmatching: uniquenessRatio: %f factor: %f\n",uniquenessRatio,factor);}
         }
+		
+		
+		
+		
       }
   }
   ParallelMatching& operator=(const ParallelMatching &) {
@@ -104,6 +122,14 @@ public:
 	cv::cvtColor(costVolume[d], costVolume[d], cv::COLOR_RGB2GRAY);
 	costVolume[d].convertTo(costVolume[d],CV_32F);
         cv::GaussianBlur(costVolume[d],costVolume[d],cv::Size(kernelSize,kernelSize),0);
+		
+		
+		if(print9){print9=false;
+		
+			printf("BuildCostVolumeParallel: kernelSize: %d \n",kernelSize);
+		
+		}
+		
      }
   }
   BuildCostVolumeParallel& operator=(const BuildCostVolumeParallel &) {
@@ -260,6 +286,13 @@ std::vector<int> getNeighborsBottom(MaxNode * tree, int indexCenter, int width,
  */
 std::vector<int> getNeighborsTop(MaxNode * tree, int indexCenter, int width,
 		int height, bool useCur, bool dispCheck,int kernelCostComp) {
+
+
+	if(print6){print6=false;
+		
+		printf("getNeighborsTop: kernelCostComp: %d \n",kernelCostComp);
+		
+	}
 
 	std::vector<int> tmp;
 
@@ -434,7 +467,14 @@ int contextCost(int indexL, int indexR, MaxNode* treeHorL, MaxNode* treeHorR) {
 			total += weight;
 			//weight/=2;
 		}
-		return (225)*(sum / total);
+		
+		if(print4){print4=false;
+		
+			printf("contextCost: returnval: %f\n",(225)*(sum / total));
+		
+		}
+		
+		return (225)*(sum / total);		
 	}else{
 		return std::numeric_limits<int>::max();
 	}
@@ -455,6 +495,14 @@ int contextCost(int indexL, int indexR, MaxNode* treeHorL, MaxNode* treeHorR) {
 void getTops(MaxNode * treeRightHor, MaxNode * treeLeftHor, int width,
 		int height, std::vector<std::vector<int>> *topsL,
 		std::vector<std::vector<int>> * topsR) {
+
+
+		if(print5){print5=false;
+		
+			printf("getTops: minAreaMatchedFineTopNode: %d maxAreaMatchedFineTopNode:%d\n",minAreaMatchedFineTopNode,maxAreaMatchedFineTopNode);
+		
+		}
+
 
 	for (int r = 0; r < height; r++) {
 		std::vector<int> rowL;
@@ -655,6 +703,11 @@ public:
 
 	virtual void operator()(const cv::Range& range) const {
 		for (int r = range.start; r < range.end; r++) {
+
+			
+			timeCostVolAcess_start++;
+			auto timeCostVolAcess_start_time = getWallTime();
+
 			int * res = (int *) malloc(2 * sizeof(int));
 			if(iteration < total -2 && r % everyNthRow != 0)
 				continue; 
@@ -734,8 +787,10 @@ public:
 				}
 
 
-				if (total - 2 <= iteration)
+				if (total - 2 <= iteration){
 						continue;
+				}
+
 
 				for (uint RvInd = 0;  RvInd < topsR[r].size(); RvInd++) {
 
@@ -790,8 +845,14 @@ public:
 							int xL2 = (treeRightHor[NeighborsRTop[i]].begIndex) % width;
 							int xR2 = (treeRightHor[NeighborsRTop[i]].Area % width + treeRightHor[NeighborsRTop[i]].begIndex % width) % width;
 							
+
+							auto timeCostVolAcess_start_time_2 = getWallTime();
+
+
 							float grad2 = gradientCostComp(y,xL1,xR1,xL2,xR2,disparityLevels);
 							colCost += grad2;
+
+							timeCostVolAcess_totaltime_2 += getWallTime() - timeCostVolAcess_start_time_2;
 													
 							float tmp = contextCost(NeighborsLTop[i],NeighborsRTop[i],treeLeftHor,treeRightHor);
 							descendentsCost += tmp;
@@ -806,9 +867,17 @@ public:
 							int xL2 = (treeRightHor[NeighborsRBottom[i]].begIndex) % width;
 							int xR2 = ( treeRightHor[NeighborsRBottom[i]].Area % width + treeRightHor[NeighborsRBottom[i]].begIndex % width) % width;
 							
+
+							auto timeCostVolAcess_start_time_2 = getWallTime();
+
+
 							float grad2 = gradientCostComp(y,xL1,xR1,xL2,xR2,disparityLevels);
 							colCost += grad2;
 				
+
+							timeCostVolAcess_totaltime_2 += getWallTime() - timeCostVolAcess_start_time_2;
+
+
 							float tmp = contextCost(NeighborsLBottom[i],NeighborsRBottom[i],treeLeftHor,treeRightHor);
 							descendentsCost += tmp;
 						}
@@ -817,6 +886,15 @@ public:
 								* alpha;
 						cost += (descendentsCost / (sizeBottom + sizeTop - 1))
 								* (1 - alpha);
+								
+						if(print3){print3=false;
+						
+							printf("MatchTopsParallelbody: alpha: %f\n",alpha);
+							
+							//printf("MatchTopsParallelbody: colcost: %f\n",(colCost / (sizeBottom + sizeTop - 1))* alpha);
+							//printf("MatchTopsParallelbody: descendentsCost: %f\n",(descendentsCost / (sizeBottom + sizeTop - 1))* (1 - alpha));
+						
+						}
 
 						if (matchesRowL[LvInd].cost > cost) {
 							matchesRowL[LvInd].secondBestCost = matchesRowL[LvInd].cost;
@@ -842,6 +920,10 @@ public:
 			}
 
 			if (total - 2 <= iteration){
+
+				timeCostVolAcess_end++;
+				timeCostVolAcess_totaltime += getWallTime() - timeCostVolAcess_start_time;
+
 				free(res);
 				continue;			
 			}
@@ -868,6 +950,8 @@ public:
 
 
 				if (!(R.secondBestCost < R.cost * (1+uniquenessRatio/100)) && !(L.secondBestCost < L.cost * (1+uniquenessRatio/100)) && (R.match == tmR || !useLRCHECK)) {
+
+					if(print2){print2=false;printf("MatchTopsParallelbody: uniquenessRatio: %f\n",uniquenessRatio);}
 
 					int cLeft = treeRightHor[topsR[r][tmL]].begIndex % width;
 					int c2Left = treeLeftHor[topsL[r][tmR]].begIndex % width;
@@ -911,8 +995,17 @@ public:
 					treeLeftHor[topsL[r][LvInd]].matchId = -1;
 				}
 			}
-			free(res);		
+			free(res);	
+
+
+			timeCostVolAcess_end++;
+			timeCostVolAcess_totaltime += getWallTime() - timeCostVolAcess_start_time;
+	
 		}
+
+
+		
+
 		
 	}
 };
@@ -1147,7 +1240,7 @@ void printTimes(std::string stringCur){
 	if(printTimesBool){
 		auto time1 = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
 	
-		printf("%f ---- %s\n",(double)(time1-time0),prevString.c_str());
+		printf("%0.f ---- %s\n",(double)(time1-time0),prevString.c_str());
 		prevString = stringCur;
 		time0 = time1;
 	}
@@ -1217,6 +1310,35 @@ private:
 
 cv::Mat work(cv::Mat imgLeft, cv::Mat imgRight,bool sparse2,float alpha2,int minAreaMatchedFineTopNode2,int maxAreaMatchedFineTopNode2,int nColors2,int * sizes2, int total2,uint kernelCostComp2,int kernelCostVolume, int everyNthRow2, int disparityLevels2,float minConfidencePercentage2, float allowanceSearchRange2){
 	
+/*
+
+	print1 = true;
+	print2 = true;
+	print3 = true;
+	print4 = true;
+	print5 = true;
+	print6 = true;
+	print7 = true;
+	print8 = true;
+	print9 = true;
+
+
+	print1 = false;
+	print2 = false;
+	print3 = false;
+	print4 = false;
+	print5 = false;
+	print6 = false;
+	print7 = false;
+	print8 = false;
+	print9 = false;
+*/
+
+
+	timeCostVolAcess_start = 0;
+	timeCostVolAcess_end = 0;
+	timeCostVolAcess_totaltime = 0;
+	timeCostVolAcess_totaltime_2 = 0;
 
 	printTimes("copy variables");
 	
@@ -1298,6 +1420,14 @@ cv::Mat work(cv::Mat imgLeft, cv::Mat imgRight,bool sparse2,float alpha2,int min
 	rightG = rightG / (256 / nColors);
 	leftG = leftG * (256 / nColors);
 	rightG = rightG * (256 / nColors);
+
+	
+	if(print7){print7=false;
+	
+		printf("work: nColors: %d\n",nColors);
+	
+	}
+
 
 	treeLeftHor = buildTree(leftG);
 	treeRightHor = buildTree(rightG);
@@ -1381,8 +1511,7 @@ cv::Mat work(cv::Mat imgLeft, cv::Mat imgRight,bool sparse2,float alpha2,int min
 	getTops(treeRightHor, treeLeftHor, width, height, &topsL, &topsR);
 
 
-	printTimes("coarse to fine");
-
+	
 	for (int i = 0; i < total-1; i++) {
 
 		for(int ctr = 0;ctr< width*height;ctr++){
@@ -1397,7 +1526,11 @@ cv::Mat work(cv::Mat imgLeft, cv::Mat imgRight,bool sparse2,float alpha2,int min
 		clearCurLevel(width, height, treeLeftHor);
 		clearCurLevel(width, height, treeRightHor);
 
+		printTimes("getNthTops");
+
 		getNthTops(topsR, topsL, sizes[i], &topsRnTh, &topsLnTh, treeRightHor, treeLeftHor, height);
+
+		printTimes("coarse to fine");
 
 		matchNodes(treeRightHor, treeLeftHor, disparityLevels, imgRight2, imgLeft2, topsLnTh, topsRnTh, i, &dispMap);
 		
@@ -1413,6 +1546,7 @@ cv::Mat work(cv::Mat imgLeft, cv::Mat imgRight,bool sparse2,float alpha2,int min
 			topsLnTh = std::vector<std::vector<int>>(height);
 			topsRnTh = std::vector<std::vector<int>>(height);
 		}
+	
 	}
 
 	saveStageImage(dispMap, "stage2.png");
@@ -1496,11 +1630,20 @@ cv::Mat work(cv::Mat imgLeft, cv::Mat imgRight,bool sparse2,float alpha2,int min
 
 	printTimes(".");
 
-	 printf("time: %f\n",getWallTime() - startTotal);
+	//printf("time: %f\n",getWallTime() - startTotal);
 
 	saveStageImage(dispMap, "stage6.png");
 
 	dispMap.convertTo(dispMap,CV_32F);
+
+
+	printf("timeCostVolAcess_start: %d\n",timeCostVolAcess_start);
+	printf("timeCostVolAcess_end: %d\n",timeCostVolAcess_end);
+	printf("timeCostVolAcess_totaltime: %.0f\n",timeCostVolAcess_totaltime*1000);
+	printf("timeCostVolAcess_totaltime_2: %.0f\n",timeCostVolAcess_totaltime_2*1000);
+	printf("Percentage: %.0f\n",(timeCostVolAcess_totaltime_2/timeCostVolAcess_totaltime)*100);
+
+
 
 	return dispMap;
 }

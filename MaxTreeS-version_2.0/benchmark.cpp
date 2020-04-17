@@ -7,7 +7,7 @@
 bool isMetricCompMode;
 bool isResultsCompMode;
 
-std::string rootFolder = "~";
+std::string rootFolder = "";
 
 bool ends_with(std::string  const & value, std::string  const & ending) {
   if (ending.size() > value.size()) return false;
@@ -106,41 +106,78 @@ bool isValid(float val){
 }
 
 
-void writeVisError(cv::Mat gt, cv::Mat dispMap,int dispLevels){
+cv::Mat writeVisError(cv::Mat gt, cv::Mat dispMap,int dispLevels){
 
-  gt = gt / dispLevels * 255;
-  dispMap = dispMap / dispLevels * 255;
+	if(true){
 
-  cv::Mat error = dispMap.clone();
+		  cv::Mat error = dispMap.clone();
 
-  for (int r = 0; r < dispMap.rows; r++) {
-    for (int c = 0; c < dispMap.cols; c++) {
-      if(!isValid(gt.at<float>(r,c)) || !isValid(dispMap.at<float>(r,c))){
-        error.at<float>(r,c) = 255;
-      } 
-      if(!isValid(gt.at<float>(r,c))){
-  		  gt.at<float>(r,c) = 255;
-  	  }
-  	  if(!isValid(dispMap.at<float>(r,c))){
-  		  dispMap.at<float>(r,c) = 255;
-  	  } 
+		  for (int r = 0; r < dispMap.rows; r++) {
+		    for (int c = 0; c < dispMap.cols; c++) {
+			if(!isValid(gt.at<float>(r,c)) || !isValid(dispMap.at<float>(r,c))){
+				error.at<float>(r,c) = 255;
+			} 
+			if(!isValid(gt.at<float>(r,c))){
+				gt.at<float>(r,c) = 255;
+			}
+			if(!isValid(dispMap.at<float>(r,c))){
+				dispMap.at<float>(r,c) = 255;
+			} 
 
-    }
-  }
-  
-  cv::Mat img;
-   
-  gt.convertTo(img, CV_8U);
-  cv::applyColorMap(img, img, cv::COLORMAP_JET);
-  cv::imwrite("error1.png", img);
+		    }
+		  }
+		  
+		  gt = gt / dispLevels * 255;
+		  dispMap = dispMap / dispLevels * 255;
+		  error = error / dispLevels * 255;
 
-  dispMap.convertTo(img, CV_8U);
-  cv::applyColorMap(img, img, cv::COLORMAP_JET);
-  cv::imwrite("error2.png", img);
+		  cv::Mat img;
+		   
+		  gt.convertTo(img, CV_8U);
+		  cv::applyColorMap(img, img, cv::COLORMAP_JET);
+		  cv::imwrite("error1.png", img);
 
-  error.convertTo(img, CV_8U);
-  cv::applyColorMap(img, img, cv::COLORMAP_JET);
-  cv::imwrite("error3.png", img);
+		  dispMap.convertTo(img, CV_8U);
+		  cv::applyColorMap(img, img, cv::COLORMAP_JET);
+		  cv::imwrite("error2.png", img);
+
+		  error.convertTo(img, CV_8U);
+		  cv::applyColorMap(img, img, cv::COLORMAP_JET);
+		  cv::imwrite("error3.png", img);
+
+		return error;
+	}else{
+		  cv::Mat error = dispMap.clone();
+
+		  for (int r = 0; r < dispMap.rows; r++) {
+		    for (int c = 0; c < dispMap.cols; c++) {
+		 		error.at<float>(r,c) = abs(dispMap.at<float>(r,c)-gt.at<float>(r,c));
+			}
+		    }
+		  
+		  
+		  cv::Mat img;
+
+		  error = error;
+
+		  error.convertTo(img, CV_8U);
+		  cv::applyColorMap(img, img, cv::COLORMAP_HOT);
+
+
+		  for (int r = 0; r < dispMap.rows; r++) {
+		    for (int c = 0; c < dispMap.cols; c++) {
+				if(!isValid(gt.at<float>(r,c)) || !isValid(dispMap.at<float>(r,c))){
+					img.at<cv::Vec<char, 3>>(r,c)[0] = 0;
+		  			img.at<cv::Vec<char, 3>>(r,c)[1] = 0;
+		  			img.at<cv::Vec<char, 3>>(r,c)[2] = 0;
+				}
+			  }
+		  }
+
+
+		  return img;
+
+	}
 }
 
 
@@ -290,12 +327,10 @@ float metric_density(cv::Mat dmap, cv::Mat gt){
   float valid = 0;
   for(int r =0;r< dmap.rows;r++){
     for(int c = 0;c < dmap.cols;c++){
-      if(isValid(gt.at<float>(r,c))){
         if(isValid(dmap.at<float>(r,c))){
           valid++;
         }
         total++;
-      }
     }
   }
   return total != 0 ? 100.0*(valid/total) : -1;
@@ -311,6 +346,8 @@ void run(bool sparse, std::string methodName,std::string versionString,std::stri
 
 	cv::Mat img_l = cv::imread(leftImg_string.c_str());
 	cv::Mat img_r = cv::imread(rightImg_string.c_str());
+
+	//printf("fator: %d\n",fator);
 
 	int maxAreaMatchedFineTopNode = img_l.cols / fator;
 
@@ -356,7 +393,12 @@ cv::Mat readbinfile(std::string gt_string,int width,int height){
 }
 
 
-void calcMetricsMasked(std::string methodName,std::string versionString,std::string resultsFile_String, std::string dispImg_string,std::string gt_string,int dispLevels,std::string mask_string){
+bool checkifalldispmapshavebeenconsidered = false;
+bool checkdensitygt100 = false;
+int methodtorun = 0;// 0 = mtstereo, 1 = sgbm1, 2 = sgbm2, 3 = sed, 4 = elas
+
+
+void calcMetricsMasked(std::string methodName,std::string versionString,std::string resultsFile_String, std::string dispImg_string,std::string gt_string,int dispLevels,std::string mask_string, bool flip){
   cv::Mat dmap;
   cv::Mat gt;
   if(ends_with(dispImg_string.c_str(), ".pfm"))
@@ -370,6 +412,18 @@ void calcMetricsMasked(std::string methodName,std::string versionString,std::str
   if(ends_with(gt_string.c_str(), ".bin"))
    gt = readbinfile(gt_string,dmap.cols,dmap.rows);
 
+
+
+
+	if(checkifalldispmapshavebeenconsidered){
+		
+		if(dmap.cols > 0 && gt.cols > 0){
+			printf("%s\n",gt_string.c_str());
+		}
+			
+	}else{
+	
+
 	if (dmap.cols > 0 && gt.cols > 0){
 		
 		if (dmap.channels() > 1){
@@ -382,17 +436,11 @@ void calcMetricsMasked(std::string methodName,std::string versionString,std::str
 		dmap.convertTo(dmap,CV_32FC1);
 		gt.convertTo(gt,CV_32FC1);
 		
-
-		// synthgarden
-		if(strcmp(methodName.c_str(), "synthgarden") == 0){
-		  for(int r =0;r<gt.rows;r++){
-			for(int c =0;c<gt.cols;c++){
-			  float val = gt.at<float>(r,c);
-		      gt.at<float>(r,c) = val;
-			} 
-		  }
-		}
 		
+		if(flip)
+			cv::flip(dmap,dmap,0);
+
+
 		// kitti2015 invalid
 		if(strcmp(methodName.c_str(), "kitti2015") == 0){
 			 for(int r =0;r<gt.rows;r++){
@@ -403,38 +451,58 @@ void calcMetricsMasked(std::string methodName,std::string versionString,std::str
 					}
 				 }
 			 }
-		}
-		//realgarden invalid
-		if(strcmp(methodName.c_str(), "realgarden") == 0){
-			 for(int r =0;r<gt.rows;r++){
-				 for(int c =0;c<gt.cols;c++){
-					float val = gt.at<float>(r,c);
-					gt.at<float>(r,c) = val;
-				 }
-			 }
-		}
-		
-		// middleburry mask
-		if(strcmp(mask_string.c_str(), "notmasked") != 0){
-			cv::Mat mask = cv::imread(mask_string.c_str());
-			
-			if (mask.channels() > 1){
-				cv::cvtColor(mask, mask, cv::COLOR_RGB2GRAY);
-			}	
 
-			mask.convertTo(mask,CV_32FC1);
-			
-			cv::flip(mask,mask,0);
-			for(int r =0;r<gt.rows;r++){
-				for(int c =0;c<gt.cols;c++){
-					if(mask.at<float>(r,c) == 0){
-						gt.at<float>(r,c) = -1;
+			for(int r =0;r<dmap.rows;r++){
+				for(int c =0;c<dmap.cols;c++){
+					if(dmap.at<float>(r,c) <= 0 || dmap.at<float>(r,c) > 100000){
+						dmap.at<float>(r,c) = -1;
 					}
 				 }
 			 }
+
+
+		}
+	
+		/*
+	
+		if(checkdensitygt100){
+			  float total = 0;
+			  float valid = 0;
+			  for(int r =0;r< gt.rows;r++){
+				for(int c = 0;c < gt.cols;c++){
+				  if(isValid(gt.at<float>(r,c))){
+					valid++;
+				  }
+				  total++;
+				}
+			  }
+			  if(valid != total){
+				  printf("ERROR! - Density GT:%f \n",total != 0 ? 100.0*(valid/total) : -1);
+			  }else{
+				  printf("ok\n");
+			  }
+			  return;
 		}
 		
+		float minval = 100000000;
+		float maxval = 0;
+		for(int r =0;r<gt.rows;r++){
+				 for(int c =0;c<gt.cols;c++){					 
+					float val = gt.at<float>(r,c);
+					if(isValid(val)){
+						if(val > maxval)
+							maxval = val;
+						if(val < minval)
+							minval = val;	
+					}
+			 }
+		}
+		//printf("minval in gt: %f max val in gt: %f\n",minval,maxval);
+		*/
+
 		
+
+		/*
 		// our maps invalid
 		for(int r =0;r<dmap.rows;r++){
 			for(int c =0;c<dmap.cols;c++){
@@ -443,37 +511,40 @@ void calcMetricsMasked(std::string methodName,std::string versionString,std::str
 				}
 			 }
 		 }
+		*/
 		
-		float avgerr = metric_avgerr(dmap, gt, dispLevels,true);
-		float rmse = metric_rmse(dmap, gt, dispLevels,true);
-		float bad1 = metric_bad(dmap, gt, 1, dispLevels,true);
-		float bad2 = metric_bad(dmap, gt, 2, dispLevels,true);
-		float bad3 = metric_bad(dmap, gt, 3, dispLevels,true);
-		float bad4 = metric_bad(dmap, gt, 4, dispLevels,true);
-		float bad5 = metric_bad(dmap, gt, 5, dispLevels,true);	
+		float avgerr = metric_avgerr(dmap, gt, dispLevels,false);
+		float rmse = 0;//metric_rmse(dmap, gt, dispLevels,true);
+		float bad1 = 0;//metric_bad(dmap, gt, 1, dispLevels,true);
+		float bad2 = 0;//metric_bad(dmap, gt, 2, dispLevels,true);
+		float bad3 = 0;//metric_bad(dmap, gt, 3, dispLevels,true);
+		float bad4 = 0;//metric_bad(dmap, gt, 4, dispLevels,true);
+		float bad5 = 0;//metric_bad(dmap, gt, 5, dispLevels,true);	
 		
 		
-		float avgerr_clipped = metric_avgerr(dmap, gt, dispLevels,false);
-		float rmse_clipped = metric_rmse(dmap, gt, dispLevels,false);
-		float bad1_clipped = metric_bad(dmap, gt, 1, dispLevels,false);
-		float bad2_clipped = metric_bad(dmap, gt, 2, dispLevels,false);
-		float bad3_clipped = metric_bad(dmap, gt, 3, dispLevels,false);
-		float bad4_clipped = metric_bad(dmap, gt, 4, dispLevels,false);
-		float bad5_clipped = metric_bad(dmap, gt, 5, dispLevels,false);	
+		float avgerr_clipped = 0;//metric_avgerr(dmap, gt, dispLevels,false);
+		float rmse_clipped = 0;//metric_rmse(dmap, gt, dispLevels,false);
+		float bad1_clipped = 0; //metric_bad(dmap, gt, 1, dispLevels,false);
+		float bad2_clipped = 0;//metric_bad(dmap, gt, 2, dispLevels,false);
+		float bad3_clipped = 0;//metric_bad(dmap, gt, 3, dispLevels,false);
+		float bad4_clipped = 0;//metric_bad(dmap, gt, 4, dispLevels,false);
+		float bad5_clipped = 0;//metric_bad(dmap, gt, 5, dispLevels,false);	
 		
-		float D1ALL = metric_D1ALL(dmap, gt); 	
+		float D1ALL = 0;//metric_D1ALL(dmap, gt); 	
 		float density = metric_density(dmap, gt);     
-		
+				
 		writeInfoResults(resultsFile_String, methodName, versionString, resultsFile_String, dispImg_string, avgerr, rmse, bad1, bad2, bad3, bad4, bad5,D1ALL,density,avgerr_clipped, rmse_clipped, bad1_clipped, bad2_clipped, bad3_clipped, bad4_clipped, bad5_clipped);
 		
-		if(true){
-			writeVisError(gt, dmap,dispLevels);
+		if(false){
+			cv::Mat error = writeVisError(gt, dmap,dispLevels);
+			//cv::imwrite(dispImg_string+"_error.png",error);
+		}
 		}
 	}
 }
 
-void calcMetrics(std::string methodName,std::string versionString,std::string resultsFile_String, std::string dispImg_string,std::string gt_string,int dispLevels){
-	calcMetricsMasked( methodName, versionString, resultsFile_String,  dispImg_string, gt_string, dispLevels, "notmasked");
+void calcMetrics(std::string methodName,std::string versionString,std::string resultsFile_String, std::string dispImg_string,std::string gt_string,int dispLevels,bool flip){
+	calcMetricsMasked( methodName, versionString, resultsFile_String,  dispImg_string, gt_string, dispLevels, "notmasked",flip);
 }
 
 std::string genVersionString(int versionIndex, bool * useOldGradCost, bool * sparse, bool * useBilateral){
@@ -496,7 +567,9 @@ std::string genVersionString(int versionIndex, bool * useOldGradCost, bool * spa
 		versionString2 = "_sd";
     }
 
-    return versionString0+versionString1+versionString2;
+    //return versionString0+versionString1+versionString2+"v1";
+    //return versionString0+versionString1+versionString2;
+    return "mts1"+versionString2;
 }
 
 
@@ -509,6 +582,9 @@ bool flyingthingsExclude(std::string filename){
 	}
 	return false;
 }
+
+
+bool dbCheckMode = false;
 
 void processMethod(const char * methodName) {
 
@@ -575,7 +651,7 @@ void processMethod(const char * methodName) {
     std::string folders[15] = {"Adirondack", "ArtL", "Jadeplant", "Motorcycle", "MotorcycleE", "Piano", "PianoL", "Pipes", "Playroom", "Playtable", "PlaytableP", "Recycle", "Shelves", "Teddy", "Vintage"}; 
     int disps[15] = {290, 256, 640, 280, 280, 260, 260, 300, 330, 290, 290, 260, 240, 256, 760 }; 
 
-    for (int i = 0; i < 15; i++) {
+    for (int i = 5; i < 15; i++) {
       std::string folder = folders[i];
       for(int versionIndex = 0 ; versionIndex < 2;versionIndex++){
 		
@@ -590,20 +666,101 @@ void processMethod(const char * methodName) {
           int sizes[5] = {1,0,0,0};
 		
 		  int nColors = (*sparse)?16:8;
-		  		
-          run(* sparse, methodName, versionString, resultsFile_String,  leftImg_string,rightImg_string,dispImg_string,dispImgVis_string,dispLevels,2,.8,0,nColors,sizes,4,10,21,1,minConfidencePercentage,allowanceSearchRange);
+		  
+		   
+		  if(dbCheckMode){
+			  if(versionIndex !=0) 
+				  continue;
+			  printf("%s\n",leftImg_string.c_str());
+		  }else{
+			  		  
+	  if(methodtorun == 0){			  		
+			  run(* sparse, methodName, versionString, resultsFile_String,  leftImg_string,rightImg_string,dispImg_string,dispImgVis_string,dispLevels,2,.8,0,nColors,sizes,4,10,21,1,minConfidencePercentage,allowanceSearchRange);
+		}else{
+			if(versionIndex == 0){
+				if(methodtorun == 1){
+					versionString = "sgbm1";
+
+					dispImg_string = rootFolder+"/middleburry/trainingF/" + folder + "/disp0_" + versionString + ".pfm";
+		 			dispImgVis_string = rootFolder+"/middleburry/trainingF/" + folder + "/disp0_" + versionString + ".png";
+
+					printf("python sgbm1.py %s %s %s %s %d\n",leftImg_string.c_str(),rightImg_string.c_str(),dispImg_string.c_str(),dispImgVis_string.c_str(),dispLevels);
+				}
+				if(methodtorun == 2){
+					versionString = "sgbm2";
+
+					dispImg_string = rootFolder+"/middleburry/trainingF/" + folder + "/disp0_" + versionString + ".pfm";
+		 			dispImgVis_string = rootFolder+"/middleburry/trainingF/" + folder + "/disp0_" + versionString + ".png";
+
+					printf("python sgbm2.py %s %s %s %s %d\n",leftImg_string.c_str(),rightImg_string.c_str(),dispImg_string.c_str(),dispImgVis_string.c_str(),dispLevels);
+				}
+				if(methodtorun == 3){
+					versionString = "sed";
+
+					dispImg_string = rootFolder+"/middleburry/trainingF/" + folder + "/disp0_" + versionString + ".pfm";
+
+					printf("./SED/experiments/sed_run/sed_run %s %s %s %d\n",leftImg_string.c_str(),rightImg_string.c_str(),dispImg_string.c_str(),dispLevels);
+				}
+				if(methodtorun == 4){
+					versionString = "elas";
+
+					dispImg_string = rootFolder+"/middleburry/trainingF/" + folder + "/disp0_" + versionString + ".pfm";
+					
+					//std::string rightImg_string_ = rightImg_string+"";
+					//std::string leftImg_string_ = leftImg_string+"";
+
+		
+					//leftImg_string_ = leftImg_string_.substr(0, leftImg_string_.size()-4)+".pgm";
+					//rightImg_string_ = rightImg_string_.substr(0, rightImg_string_.size()-4)+".pgm";	
+
+					//printf("convert %s -flatten %s \n",leftImg_string.c_str(),leftImg_string_.c_str());
+					//printf("convert %s -flatten %s \n",rightImg_string.c_str(),rightImg_string_.c_str());
+
+					printf("./elas/elas %s %s %s %d\n",leftImg_string.c_str(),rightImg_string.c_str(),dispImg_string.c_str(),dispLevels);
+				}
+			}
+		}
+	}
+
+
+
+
         }
         if(isMetricCompMode){
           std::string dispImg_string = rootFolder+"/middleburry/trainingF/" + folder + "/disp0Mt_" + versionString + ".pfm";
           std::string gt_string = rootFolder+"/middleburry/trainingF/" + folder + "/disp0GT.pfm";
 		  //std::string mask_string = rootFolder+"/middleburry/trainingF/" + folder + "/mask0nocc.png";
-          calcMetrics(methodName,versionString,resultsFileAccuracy_String, dispImg_string,gt_string, dispLevels);
+		  
+		  
+		  if(versionIndex == 0){
+				if(methodtorun == 1){
+					versionString = "sgbm1";
+					dispImg_string = rootFolder+"/middleburry/trainingF/" + folder + "/disp0_" + versionString + ".pfm";
+				}
+				if(methodtorun == 2){
+					versionString = "sgbm2";
+					dispImg_string = rootFolder+"/middleburry/trainingF/" + folder + "/disp0_" + versionString + ".pfm";
+				}
+				if(methodtorun == 3){
+					versionString = "sed";
+					dispImg_string = rootFolder+"/middleburry/trainingF/" + folder + "/disp0_" + versionString + ".pfm";
+
+				}
+				if(methodtorun == 4){
+					versionString = "elas";
+					dispImg_string = rootFolder+"/middleburry/trainingF/" + folder + "/disp0_" + versionString + ".pfm";
+				}
+			}
+		  
+		  
+		  if(methodtorun == 0 || (methodtorun > 0 && versionIndex ==0))
+			calcMetrics(methodName,versionString,resultsFileAccuracy_String, dispImg_string,gt_string, dispLevels,false);
         }
       }
 	  
     }
   } else if (strcmp(methodName, "realgarden") == 0) {
-        for (int k = 1; k < 1270; k += 1) {
+        for (int k = 1; k <= 1270; k += 1) {
 
             for(int versionIndex = 0 ; versionIndex < 2;versionIndex++){
               versionString = genVersionString(versionIndex, useOldGradCost, sparse, useBilateral);
@@ -611,18 +768,94 @@ void processMethod(const char * methodName) {
                 if(isResultsCompMode){
                   std::string leftImg_string = rootFolder+"/new/Trimbot2020GardenNew/TEST/left/"+ std::to_string(k) + ".jpg";
                   std::string rightImg_string = rootFolder+"/new/Trimbot2020GardenNew/TEST/right/"+ std::to_string(k) + ".jpg";
-                  std::string dispImg_string =  rootFolder+"/new/Trimbot2020GardenNew/TEST/left/"+ std::to_string(k) + "_disp_" + versionString + ".png";
+                  std::string dispImg_string =  rootFolder+"/new/Trimbot2020GardenNew/TEST/left/"+ std::to_string(k) + "_disp_" + versionString + ".pfm";
                   std::string dispImgVis_string = rootFolder+"/new/Trimbot2020GardenNew/TEST/left/"+ std::to_string(k) + "_dispVis_" + versionString + ".png";
                   int sizes[5] = {1,0,0,0};
 				  
 				  int nColors = (*sparse)?16:8;
-				  
-                  run(* sparse, methodName, versionString, resultsFile_String,  leftImg_string,rightImg_string,dispImg_string,dispImgVis_string,dispLevels,2,.8,0,nColors,sizes,4,10,21,1,minConfidencePercentage,allowanceSearchRange);
-                }
+				  		  if(dbCheckMode){
+			  if(versionIndex !=0) 
+				  continue;
+			  printf("%s\n",leftImg_string.c_str());
+		  }else{
+			  
+			  
+			  
+			  
+			  
+			  
+		if(methodtorun == 0){		
+               run(* sparse, methodName, versionString, resultsFile_String,  leftImg_string,rightImg_string,dispImg_string,dispImgVis_string,dispLevels,2,.8,0,nColors,sizes,4,10,21,1,minConfidencePercentage,allowanceSearchRange);
+	
+		}else{
+			if(versionIndex == 0){
+				if(methodtorun == 1){
+					versionString = "sgbm1";
+
+					dispImg_string =  rootFolder+"/new/Trimbot2020GardenNew/TEST/left/"+ std::to_string(k) + "_disp_" + versionString + ".pfm";
+					dispImgVis_string = rootFolder+"/new/Trimbot2020GardenNew/TEST/left/"+ std::to_string(k) + "_dispVis_" + versionString + ".png";
+
+					printf("python sgbm1.py %s %s %s %s %d\n",leftImg_string.c_str(),rightImg_string.c_str(),dispImg_string.c_str(),dispImgVis_string.c_str(),dispLevels);
+				}
+				if(methodtorun == 2){
+					versionString = "sgbm2";
+
+					dispImg_string =  rootFolder+"/new/Trimbot2020GardenNew/TEST/left/"+ std::to_string(k) + "_disp_" + versionString + ".pfm";
+					dispImgVis_string = rootFolder+"/new/Trimbot2020GardenNew/TEST/left/"+ std::to_string(k) + "_dispVis_" + versionString + ".png";
+
+					printf("python sgbm2.py %s %s %s %s %d\n",leftImg_string.c_str(),rightImg_string.c_str(),dispImg_string.c_str(),dispImgVis_string.c_str(),dispLevels);
+				}
+				if(methodtorun == 3){
+					versionString = "sed";
+
+					dispImg_string =  rootFolder+"/new/Trimbot2020GardenNew/TEST/left/"+ std::to_string(k) + "_disp_" + versionString + ".png";
+
+					printf("./SED/experiments/sed_run/sed_run %s %s %s %d\n",leftImg_string.c_str(),rightImg_string.c_str(),dispImg_string.c_str(),dispLevels);
+				}
+				if(methodtorun == 4){
+					versionString = "elas";
+
+					dispImg_string =  rootFolder+"/new/Trimbot2020GardenNew/TEST/left/"+ std::to_string(k) + "_disp_" + versionString + ".pfm";
+
+					printf("./elas/elas %s %s %s %d\n",leftImg_string.c_str(),rightImg_string.c_str(),dispImg_string.c_str(),dispLevels);
+				}
+			}
+		}
+			  
+			
+
+		}
+				}
                 if(isMetricCompMode){
-				  std::string dispImg_string = rootFolder+"/new/Trimbot2020GardenNew/TEST/left/"+ std::to_string(k) + "_disp_" + versionString + ".png";
+				  std::string dispImg_string = rootFolder+"/new/Trimbot2020GardenNew/TEST/left/"+ std::to_string(k) + "_disp_" + versionString + ".pfm";
 				  std::string gt_string = rootFolder+"/new/Trimbot2020GardenNew/TEST/ground_truth_disparity/"+ std::to_string(k) + ".png";
-				  calcMetrics(methodName,versionString,resultsFileAccuracy_String, dispImg_string,gt_string,dispLevels);
+				  
+					if(versionIndex == 0){
+						if(methodtorun == 1){
+							versionString = "sgbm1";
+
+							dispImg_string =  rootFolder+"/new/Trimbot2020GardenNew/TEST/left/"+ std::to_string(k) + "_disp_" + versionString + ".pfm";
+						}
+						if(methodtorun == 2){
+							versionString = "sgbm2";
+
+							dispImg_string =  rootFolder+"/new/Trimbot2020GardenNew/TEST/left/"+ std::to_string(k) + "_disp_" + versionString + ".pfm";
+						}
+						if(methodtorun == 3){
+							versionString = "sed";
+
+							dispImg_string =  rootFolder+"/new/Trimbot2020GardenNew/TEST/left/"+ std::to_string(k) + "_disp_" + versionString + ".png";
+						}
+						if(methodtorun == 4){
+							versionString = "elas";
+
+							dispImg_string =  rootFolder+"/new/Trimbot2020GardenNew/TEST/left/"+ std::to_string(k) + "_disp_" + versionString + ".pfm";
+						}
+					}
+				  
+				  
+			if(methodtorun == 0 || (methodtorun > 0 && versionIndex ==0))
+				  calcMetrics(methodName,versionString,resultsFileAccuracy_String, dispImg_string,gt_string,dispLevels,true);
                 }
             }
 			
@@ -636,50 +869,227 @@ void processMethod(const char * methodName) {
                 if(isResultsCompMode){
                  std::string leftImg_string = rootFolder+"/new/SyntheticGardenNew/TEST/left/"+ std::to_string(k) + ".jpg";
                   std::string rightImg_string = rootFolder+"/new/SyntheticGardenNew/TEST/right/"+ std::to_string(k) + ".jpg";
-                  std::string dispImg_string =  rootFolder+"/new/SyntheticGardenNew/TEST/left/"+ std::to_string(k) + "_disp_" + versionString + ".png";
+                  std::string dispImg_string =  rootFolder+"/new/SyntheticGardenNew/TEST/left/"+ std::to_string(k) + "_disp_" + versionString + ".pfm";
                   std::string dispImgVis_string = rootFolder+"/new/SyntheticGardenNew/TEST/left/"+ std::to_string(k) + "_dispVis_" + versionString + ".png";
                   int sizes[5] = {1,0,0,0};
 				  
 				  int nColors = (*sparse)?16:8;
 
+		  if(dbCheckMode){
+			  if(versionIndex !=0) 
+				  continue;
+			  printf("%s\n",leftImg_string.c_str());
+		  }else{
+			  
+			  
+			  
+			  
+			  
+			  
+		if(methodtorun == 0){		
                   run(* sparse, methodName, versionString, resultsFile_String,  leftImg_string,rightImg_string,dispImg_string,dispImgVis_string,dispLevels,2,.8,0,nColors,sizes,4,10,21,1,minConfidencePercentage,allowanceSearchRange);
-                }
+		}else{
+			if(versionIndex == 0){
+				if(methodtorun == 1){
+					versionString = "sgbm1";
+
+					dispImg_string =  rootFolder+"/new/SyntheticGardenNew/TEST/left/"+ std::to_string(k) + "_disp_" + versionString + ".pfm";
+					dispImgVis_string = rootFolder+"/new/SyntheticGardenNew/TEST/left/"+ std::to_string(k) + "_dispVis_" + versionString + ".png";
+
+					printf("python sgbm1.py %s %s %s %s %d\n",leftImg_string.c_str(),rightImg_string.c_str(),dispImg_string.c_str(),dispImgVis_string.c_str(),dispLevels);
+				}
+				if(methodtorun == 2){
+					versionString = "sgbm2";
+
+					dispImg_string =  rootFolder+"/new/SyntheticGardenNew/TEST/left/"+ std::to_string(k) + "_disp_" + versionString + ".pfm";
+					dispImgVis_string = rootFolder+"/new/SyntheticGardenNew/TEST/left/"+ std::to_string(k) + "_dispVis_" + versionString + ".png";
+
+					printf("python sgbm2.py %s %s %s %s %d\n",leftImg_string.c_str(),rightImg_string.c_str(),dispImg_string.c_str(),dispImgVis_string.c_str(),dispLevels);
+				}
+				if(methodtorun == 3){
+					versionString = "sed";
+
+					dispImg_string =  rootFolder+"/new/SyntheticGardenNew/TEST/left/"+ std::to_string(k) + "_disp_" + versionString + ".png";
+
+					printf("./SED/experiments/sed_run/sed_run %s %s %s %d\n",leftImg_string.c_str(),rightImg_string.c_str(),dispImg_string.c_str(),dispLevels);
+				}
+				if(methodtorun == 4){
+					versionString = "elas";
+
+					dispImg_string =  rootFolder+"/new/SyntheticGardenNew/TEST/left/"+ std::to_string(k) + "_disp_" + versionString + ".pfm";
+
+					printf("./elas/elas %s %s %s %d\n",leftImg_string.c_str(),rightImg_string.c_str(),dispImg_string.c_str(),dispLevels);
+				}
+			}
+		}
+			  
+			  
+                 
+		  
+		  
+		  
+		  
+		  
+		  
+		  
+		  
+		  
+		  
+		  }
+				}
                 if(isMetricCompMode){
-				  std::string dispImg_string = rootFolder+"/new/SyntheticGardenNew/TEST/left/"+ std::to_string(k) + "_disp_" + versionString + ".png";
+				  std::string dispImg_string = rootFolder+"/new/SyntheticGardenNew/TEST/left/"+ std::to_string(k) + "_disp_" + versionString + ".pfm";
 				  std::string gt_string = rootFolder+"/new/SyntheticGardenNew/TEST/ground_truth_disparity/"+ std::to_string(k) + ".png";
-                  calcMetrics(methodName,versionString,resultsFileAccuracy_String, dispImg_string,gt_string,dispLevels);
+				  
+				  
+				  
+				  	if(versionIndex == 0){
+				if(methodtorun == 1){
+					versionString = "sgbm1";
+
+					dispImg_string =  rootFolder+"/new/SyntheticGardenNew/TEST/left/"+ std::to_string(k) + "_disp_" + versionString + ".pfm";
+				}
+				if(methodtorun == 2){
+					versionString = "sgbm2";
+
+					dispImg_string =  rootFolder+"/new/SyntheticGardenNew/TEST/left/"+ std::to_string(k) + "_disp_" + versionString + ".pfm";
+				}
+				if(methodtorun == 3){
+					versionString = "sed";
+
+					dispImg_string =  rootFolder+"/new/SyntheticGardenNew/TEST/left/"+ std::to_string(k) + "_disp_" + versionString + ".png";
+				}
+				if(methodtorun == 4){
+					versionString = "elas";
+
+					dispImg_string =  rootFolder+"/new/SyntheticGardenNew/TEST/left/"+ std::to_string(k) + "_disp_" + versionString + ".pfm";
+				}
+			}
+				  
+				  
+				  
+		 if(methodtorun == 0 || (methodtorun > 0 && versionIndex ==0))
+                 	 calcMetrics(methodName,versionString,resultsFileAccuracy_String, dispImg_string,gt_string,dispLevels,true);
                 }
             }
 			
         }
     
   } else if (strcmp(methodName, "kitti2015") == 0) {
-    //mkdir2(rootFolder+"/kitti2015/training/disp_" + versionString);
+    
     for (int k = 0; k <= 199; k += 1) {
       for(int versionIndex = 0 ; versionIndex < 2;versionIndex++){
         versionString = genVersionString(versionIndex, useOldGradCost, sparse, useBilateral);
         int dispLevels = 255;
         if(isResultsCompMode){
-          std::string leftImg_string = rootFolder+"/kitti2015/training/image_0/" + zeroPadded(std::to_string(k), 6) + "_10.png";
-          std::string rightImg_string = rootFolder+"/kitti2015/training/image_1/" + zeroPadded(std::to_string(k), 6) + "_10.png";
+	  
+	  
+
+          std::string leftImg_string = rootFolder+"/kitti2015/training/image_2/" + zeroPadded(std::to_string(k), 6) + "_10.png";
+          std::string rightImg_string = rootFolder+"/kitti2015/training/image_3/" + zeroPadded(std::to_string(k), 6) + "_10.png";
           std::string dispImg_string = rootFolder+"/kitti2015/training/disp_" + versionString + "/" + zeroPadded(std::to_string(k), 6) + "_10.png";
           std::string dispImgVis_string = rootFolder+"/kitti2015/training/disp_" + versionString + "/visualization_" + zeroPadded(std::to_string(k), 6) + "_10.png";
           int sizes[5] = {1,0,0,0};
 		  
 		  int nColors = (*sparse)?16:8;
 		  
-          run(* sparse, methodName, versionString, resultsFile_String,  leftImg_string,rightImg_string,dispImg_string,dispImgVis_string,dispLevels,2,.8,0,nColors,sizes,4,10,21,1,minConfidencePercentage,allowanceSearchRange);
+		  if(dbCheckMode){
+			  if(versionIndex !=0) 
+				  continue;
+			  printf("%s\n",leftImg_string.c_str());
+		  }else{
+			  
+			  
+		if(methodtorun == 0){		
+			 mkdir2(rootFolder+"/kitti2015/training/disp_" + versionString);
+			 run(* sparse, methodName, versionString, resultsFile_String,  leftImg_string,rightImg_string,dispImg_string,dispImgVis_string,dispLevels,2,.8,0,nColors,sizes,4,10,21,1,minConfidencePercentage,allowanceSearchRange);
+		
+		}else{
+			if(versionIndex == 0){
+				if(methodtorun == 1){
+					versionString = "sgbm1";
+
+					dispImg_string = rootFolder+"/kitti2015/training/disp_" + versionString + "/" + zeroPadded(std::to_string(k), 6) + "_10.pfm";
+					dispImgVis_string = rootFolder+"/kitti2015/training/disp_" + versionString + "/visualization_" + zeroPadded(std::to_string(k), 6) + "_10.png";
+
+					printf("python sgbm1.py %s %s %s %s %d\n",leftImg_string.c_str(),rightImg_string.c_str(),dispImg_string.c_str(),dispImgVis_string.c_str(),dispLevels);
+				}
+				if(methodtorun == 2){
+					versionString = "sgbm2";
+
+					dispImg_string = rootFolder+"/kitti2015/training/disp_" + versionString + "/" + zeroPadded(std::to_string(k), 6) + "_10.pfm";
+					dispImgVis_string = rootFolder+"/kitti2015/training/disp_" + versionString + "/visualization_" + zeroPadded(std::to_string(k), 6) + "_10.png";
+
+					printf("python sgbm2.py %s %s %s %s %d\n",leftImg_string.c_str(),rightImg_string.c_str(),dispImg_string.c_str(),dispImgVis_string.c_str(),dispLevels);
+				}
+				if(methodtorun == 3){
+					versionString = "sed";
+
+					dispImg_string = rootFolder+"/kitti2015/training/disp_" + versionString + "/" + zeroPadded(std::to_string(k), 6) + "_10.png";
+
+					printf("./SED/experiments/sed_run/sed_run %s %s %s %d\n",leftImg_string.c_str(),rightImg_string.c_str(),dispImg_string.c_str(),dispLevels);
+				}
+				if(methodtorun == 4){
+					versionString = "elas";
+
+					dispImg_string = rootFolder+"/kitti2015/training/disp_" + versionString + "/" + zeroPadded(std::to_string(k), 6) + "_10.pfm";
+
+					printf("./elas/elas %s %s %s %d\n",leftImg_string.c_str(),rightImg_string.c_str(),dispImg_string.c_str(),dispLevels);
+				}
+				mkdir2(rootFolder+"/kitti2015/training/disp_" + versionString);
+			}
+		}
+			  
+			  
+         
+
+
+
+
+
+
+
+			}
         }
         if(isMetricCompMode){
           std::string dispImg_string = rootFolder+"/kitti2015/training/disp_" + versionString + "/" + zeroPadded(std::to_string(k), 6) + "_10.png";
-          std::string gt_string = rootFolder+"/kitti2015/training/disp_occ/" + zeroPadded(std::to_string(k), 6) + "_10.png";
-          calcMetrics(methodName,versionString,resultsFileAccuracy_String, dispImg_string,gt_string,dispLevels);
+          std::string gt_string = rootFolder+"/kitti2015/training/disp_occ_0/" + zeroPadded(std::to_string(k), 6) + "_10.png";
+		  
+		  
+		  
+			if(versionIndex == 0){
+				if(methodtorun == 1){
+					versionString = "sgbm1";
+
+					dispImg_string = rootFolder+"/kitti2015/training/disp_" + versionString + "/" + zeroPadded(std::to_string(k), 6) + "_10.pfm";
+				}
+				if(methodtorun == 2){
+					versionString = "sgbm2";
+
+					dispImg_string = rootFolder+"/kitti2015/training/disp_" + versionString + "/" + zeroPadded(std::to_string(k), 6) + "_10.pfm";
+				}
+				if(methodtorun == 3){
+					versionString = "sed";
+
+					dispImg_string = rootFolder+"/kitti2015/training/disp_" + versionString + "/" + zeroPadded(std::to_string(k), 6) + "_10.png";
+				}
+				if(methodtorun == 4){
+					versionString = "elas";
+
+					dispImg_string = rootFolder+"/kitti2015/training/disp_" + versionString + "/" + zeroPadded(std::to_string(k), 6) + "_10.pfm";
+				}
+			}
+		  
+		  
+		  
+		if(methodtorun == 0 || (methodtorun > 0 && versionIndex ==0))
+          calcMetrics(methodName,versionString,resultsFileAccuracy_String, dispImg_string,gt_string,dispLevels,true);
         }
       }  
 	  	  
     }
   } else if (strcmp(methodName, "driving") == 0) {
-    // mkdir2(rootFolder+"/driving/disparity_" + versionString);
+ 
 	for (int forwardsOrBackwards = 0; forwardsOrBackwards <= 1; forwardsOrBackwards++) {		
 		for (int i = 0; i <= 300; i += 1) {			
 		  for(int versionIndex = 0 ; versionIndex < 2;versionIndex++){
@@ -699,12 +1109,95 @@ void processMethod(const char * methodName) {
 			  
 			  int nColors = (*sparse)?16:8;
 			  
-			  run(* sparse, methodName, versionString, resultsFile_String,  leftImg_string,rightImg_string,dispImg_string,dispImgVis_string,dispLevels,2,.8,0,nColors,sizes,4,10,21,1,minConfidencePercentage,allowanceSearchRange);
+			  		  if(dbCheckMode){
+			  if(versionIndex !=0) 
+				  continue;
+			  printf("%s\n",leftImg_string.c_str());
+		  }else{
+			  
+			  
+			  
+			  
+			  if(methodtorun == 0){	
+				  mkdir2(rootFolder+"/driving/disparity_" + versionString);
+				  run(* sparse, methodName, versionString, resultsFile_String,  leftImg_string,rightImg_string,dispImg_string,dispImgVis_string,dispLevels,2,.8,0,nColors,sizes,4,10,21,1,minConfidencePercentage,allowanceSearchRange);
+			}else{
+				if(versionIndex == 0){
+					if(methodtorun == 1){
+						versionString = "sgbm1";
+
+						dispImg_string = rootFolder+"/driving/disparity_" + versionString + "/" + forwardbackwardString + zeroPadded(std::to_string(i), 4) + ".pfm";
+						dispImgVis_string = rootFolder+"/driving/disparity_" + versionString +  "/dispvis_" + forwardbackwardString + zeroPadded(std::to_string(i), 4) + ".png";
+
+						printf("python sgbm1.py %s %s %s %s %d\n",leftImg_string.c_str(),rightImg_string.c_str(),dispImg_string.c_str(),dispImgVis_string.c_str(),dispLevels);
+					}
+					if(methodtorun == 2){
+						versionString = "sgbm2";
+
+						dispImg_string = rootFolder+"/driving/disparity_" + versionString + "/" + forwardbackwardString + zeroPadded(std::to_string(i), 4) + ".pfm";
+						dispImgVis_string = rootFolder+"/driving/disparity_" + versionString +  "/dispvis_" + forwardbackwardString + zeroPadded(std::to_string(i), 4) + ".png";
+
+						printf("python sgbm2.py %s %s %s %s %d\n",leftImg_string.c_str(),rightImg_string.c_str(),dispImg_string.c_str(),dispImgVis_string.c_str(),dispLevels);
+					}
+					if(methodtorun == 3){
+						versionString = "sed";
+
+						dispImg_string = rootFolder+"/driving/disparity_" + versionString + "/" + forwardbackwardString + zeroPadded(std::to_string(i), 4) + ".pfm";
+
+						printf("./SED/experiments/sed_run/sed_run %s %s %s %d\n",leftImg_string.c_str(),rightImg_string.c_str(),dispImg_string.c_str(),dispLevels);
+					}
+					if(methodtorun == 4){
+						versionString = "elas";
+
+						dispImg_string = rootFolder+"/driving/disparity_" + versionString + "/" + forwardbackwardString + zeroPadded(std::to_string(i), 4) + ".pfm";
+
+						printf("./elas/elas %s %s %s %d\n",leftImg_string.c_str(),rightImg_string.c_str(),dispImg_string.c_str(),dispLevels);
+					}
+				}
+				mkdir2(rootFolder+"/driving/disparity_" + versionString);
+			}
+			  
+			  
+			  
+			  
+			  
+			
+		  }
 			}
 			if(isMetricCompMode){
-			  std::string dispImg_string = rootFolder+"/driving/disparity_" + versionString + "/" +forwardbackwardString+ zeroPadded(std::to_string(i), 4) + ".pfm";
+			  std::string dispImg_string = rootFolder+"/driving/disparity_" + versionString + "/" + forwardbackwardString + zeroPadded(std::to_string(i), 4) + ".pfm";
 			  std::string gt_string = rootFolder+"/driving/disparity/35mm_focallength/"+forwardbackwardString+"/fast/left/" + zeroPadded(std::to_string(i), 4) + ".pfm";
-			  calcMetrics(methodName,versionString,resultsFileAccuracy_String, dispImg_string,gt_string,dispLevels);
+			  
+			  
+			  
+			  
+				if(versionIndex == 0){
+					if(methodtorun == 1){
+						versionString = "sgbm1";
+
+						dispImg_string = rootFolder+"/driving/disparity_" + versionString + "/" + forwardbackwardString + zeroPadded(std::to_string(i), 4) + ".pfm";
+					}
+					if(methodtorun == 2){
+						versionString = "sgbm2";
+
+						dispImg_string = rootFolder+"/driving/disparity_" + versionString + "/" + forwardbackwardString + zeroPadded(std::to_string(i), 4) + ".pfm";
+					}
+					if(methodtorun == 3){
+						versionString = "sed";
+
+						dispImg_string = rootFolder+"/driving/disparity_" + versionString + "/" + forwardbackwardString + zeroPadded(std::to_string(i), 4) + ".pfm";
+					}
+					if(methodtorun == 4){
+						versionString = "elas";
+
+						dispImg_string = rootFolder+"/driving/disparity_" + versionString + "/" + forwardbackwardString + zeroPadded(std::to_string(i), 4) + ".pfm";
+					}
+				}
+			  
+			  
+			  
+			 if(methodtorun == 0 || (methodtorun > 0 && versionIndex ==0))
+				calcMetrics(methodName,versionString,resultsFileAccuracy_String, dispImg_string,gt_string,dispLevels,false);
 			}
 		  }  
 		  	  
@@ -726,19 +1219,108 @@ void processMethod(const char * methodName) {
           if(isResultsCompMode){
             std::string leftImg_string = rootFolder+"/monkaa/frames_cleanpass/" + folder + "/left/" + zeroPadded(std::to_string(i), 4) + ".png";
             std::string rightImg_string = rootFolder+"/monkaa/frames_cleanpass/" + folder + "/right/" + zeroPadded(std::to_string(i), 4) + ".png";
-            std::string dispImg_string = rootFolder+"/monkaa/disparity_" + versionString + "/"+folder+"/" + zeroPadded(std::to_string(i), 4) + ".pfm";
+            std::string dispImg_string = rootFolder+"/monkaa/disparity_" + versionString + "/" +folder+"/" + zeroPadded(std::to_string(i), 4) + ".pfm";
             std::string dispImgVis_string = rootFolder+"/monkaa/disparity_" + versionString + "/"+ folder + "/dispVis_" + zeroPadded(std::to_string(i), 4) + ".png";
-            mkdir2(rootFolder+"/monkaa/disparity_" + versionString + "/" + folder);
+            
             int sizes[5] = {1,0,0,0};
 			
 		      	int nColors = (*sparse)?16:8;
+		   if(dbCheckMode){
+			  if(versionIndex !=0) 
+				  continue;
+			  printf("%s\n",leftImg_string.c_str());
+		  }else{
+
+
+			  if(methodtorun == 0){	
+				  mkdir2(rootFolder+"/monkaa/disparity_" + versionString + "/" + folder);
+				  run(* sparse, methodName, versionString, resultsFile_String,  leftImg_string,rightImg_string,dispImg_string,dispImgVis_string,dispLevels,2,.8,0,nColors,sizes,4,10,21,1,minConfidencePercentage,allowanceSearchRange);
+			}else{
+				if(versionIndex == 0){
+					if(methodtorun == 1){
+						versionString = "sgbm1";
+
+						dispImg_string = rootFolder+"/monkaa/disparity_" + versionString + "/"+folder+"/" + zeroPadded(std::to_string(i), 4) + ".pfm";
+						dispImgVis_string = rootFolder+"/monkaa/disparity_" + versionString + "/"+ folder + "/dispVis_" + zeroPadded(std::to_string(i), 4) + ".png";
+
+						printf("python sgbm1.py %s %s %s %s %d\n",leftImg_string.c_str(),rightImg_string.c_str(),dispImg_string.c_str(),dispImgVis_string.c_str(),dispLevels);
+					}
+					if(methodtorun == 2){
+						versionString = "sgbm2";
+
+						dispImg_string = rootFolder+"/monkaa/disparity_" + versionString + "/"+folder+"/" + zeroPadded(std::to_string(i), 4) + ".pfm";
+						dispImgVis_string = rootFolder+"/monkaa/disparity_" + versionString + "/"+ folder + "/dispVis_" + zeroPadded(std::to_string(i), 4) + ".png";
+
+						printf("python sgbm2.py %s %s %s %s %d\n",leftImg_string.c_str(),rightImg_string.c_str(),dispImg_string.c_str(),dispImgVis_string.c_str(),dispLevels);
+					}
+					if(methodtorun == 3){
+						versionString = "sed";
+
+						dispImg_string = rootFolder+"/monkaa/disparity_" + versionString + "/"+folder+"/" + zeroPadded(std::to_string(i), 4) + ".pfm";
+
+						printf("./SED/experiments/sed_run/sed_run %s %s %s %d\n",leftImg_string.c_str(),rightImg_string.c_str(),dispImg_string.c_str(),dispLevels);
+					}
+					if(methodtorun == 4){
+						versionString = "elas";
+
+						dispImg_string = rootFolder+"/monkaa/disparity_" + versionString + "/"+folder+"/" + zeroPadded(std::to_string(i), 4) + ".pfm";
+
+						std::string rightImg_string_ = rightImg_string+"";
+						std::string leftImg_string_ = leftImg_string+"";
+	
 			
-            run(* sparse, methodName, versionString, resultsFile_String,  leftImg_string,rightImg_string,dispImg_string,dispImgVis_string,dispLevels,2,.8,0,nColors,sizes,4,10,21,1,minConfidencePercentage,allowanceSearchRange);
+						leftImg_string_ = leftImg_string_.substr(0, leftImg_string_.size()-4)+".pgm";
+						rightImg_string_ = rightImg_string_.substr(0, rightImg_string_.size()-4)+".pgm";	
+
+						//printf("convert %s -flatten %s \n",leftImg_string.c_str(),leftImg_string_.c_str());
+						//printf("convert %s -flatten %s \n",rightImg_string.c_str(),rightImg_string_.c_str());
+
+						printf("./elas/elas %s %s %s %d\n",leftImg_string_.c_str(),rightImg_string_.c_str(),dispImg_string.c_str(),dispLevels);
+
+					}
+				}
+				mkdir2(rootFolder+"/monkaa/disparity_" + versionString + "/" + folder);
+			}
+
+
+
+
+            		
+		  }
           }
           if(isMetricCompMode){
-            std::string dispImg_string = rootFolder+"/monkaa/disparity_" + versionString + "/" + folder + "/" + zeroPadded(std::to_string(i), 4) + ".pfm";
+            std::string dispImg_string = rootFolder+"/monkaa/disparity_" + versionString + "/" +folder+"/" + zeroPadded(std::to_string(i), 4) + ".pfm";
             std::string gt_string = rootFolder+"/monkaa/disparity/" +folder+"/left/"+ zeroPadded(std::to_string(i), 4) + ".pfm";
-            calcMetrics(methodName,versionString,resultsFileAccuracy_String, dispImg_string,gt_string,dispLevels);
+			
+
+
+		if(versionIndex == 0){
+			if(methodtorun == 1){
+				versionString = "sgbm1";
+
+				dispImg_string = rootFolder+"/monkaa/disparity_" + versionString + "/" +folder+"/" + zeroPadded(std::to_string(i), 4) + ".pfm";
+			}
+			if(methodtorun == 2){
+				versionString = "sgbm2";
+
+				dispImg_string = rootFolder+"/monkaa/disparity_" + versionString + "/"+folder+"/" + zeroPadded(std::to_string(i), 4) + ".pfm";
+			}
+			if(methodtorun == 3){
+				versionString = "sed";
+
+				dispImg_string = rootFolder+"/monkaa/disparity_" + versionString + "/"+folder+"/" + zeroPadded(std::to_string(i), 4) + ".pfm";
+			}
+			if(methodtorun == 4){
+				versionString = "elas";
+
+				dispImg_string = rootFolder+"/monkaa/disparity_" + versionString + "/"+folder+"/" + zeroPadded(std::to_string(i), 4) + ".pfm";
+			}
+		}
+
+
+
+              if(methodtorun == 0 || (methodtorun > 0 && versionIndex ==0))
+                      calcMetrics(methodName,versionString,resultsFileAccuracy_String, dispImg_string,gt_string,dispLevels,false);
           }
         }
 			  
@@ -774,13 +1356,102 @@ void processMethod(const char * methodName) {
 			
 			int nColors = (*sparse)?16:8;
 			
-            run(* sparse, methodName, versionString, resultsFile_String,  leftImg_string,rightImg_string,dispImg_string,dispImgVis_string,dispLevels,2,.8,0,nColors,sizes,4,10,21,1,minConfidencePercentage,allowanceSearchRange);
+					  if(dbCheckMode){
+			  if(versionIndex !=0) 
+				  continue;
+			  printf("%s\n",leftImg_string.c_str());
+		  }else{
+
+
+  			if(methodtorun == 0){	
+				  run(* sparse, methodName, versionString, resultsFile_String,  leftImg_string,rightImg_string,dispImg_string,dispImgVis_string,dispLevels,2,.8,0,nColors,sizes,4,10,21,1,minConfidencePercentage,allowanceSearchRange);
+			}else{
+				if(versionIndex == 0){
+					if(methodtorun == 1){
+						versionString = "sgbm1";
+
+						dispImg_string = dispBase +"/left/" + zeroPadded(std::to_string(itemNum), 4) +"_"+ versionString + ".pfm";
+						dispImgVis_string = dispBase +"/left/" + zeroPadded(std::to_string(itemNum), 4) +"_"+ versionString + "_vis" +".png";
+
+						printf("python sgbm1.py %s %s %s %s %d\n",leftImg_string.c_str(),rightImg_string.c_str(),dispImg_string.c_str(),dispImgVis_string.c_str(),dispLevels);
+					}
+					if(methodtorun == 2){
+						versionString = "sgbm2";
+
+						dispImg_string = dispBase +"/left/" + zeroPadded(std::to_string(itemNum), 4) +"_"+ versionString + ".pfm";
+						dispImgVis_string = dispBase +"/left/" + zeroPadded(std::to_string(itemNum), 4) +"_"+ versionString + "_vis" +".png";
+
+						printf("python sgbm2.py %s %s %s %s %d\n",leftImg_string.c_str(),rightImg_string.c_str(),dispImg_string.c_str(),dispImgVis_string.c_str(),dispLevels);
+					}
+					if(methodtorun == 3){
+						versionString = "sed";
+
+						dispImg_string = dispBase +"/left/" + zeroPadded(std::to_string(itemNum), 4) +"_"+ versionString + ".pfm";
+
+						printf("./SED/experiments/sed_run/sed_run %s %s %s %d\n",leftImg_string.c_str(),rightImg_string.c_str(),dispImg_string.c_str(),dispLevels);
+					}
+					if(methodtorun == 4){
+						versionString = "elas";
+
+						dispImg_string = dispBase +"/left/" + zeroPadded(std::to_string(itemNum), 4) +"_"+ versionString + ".pfm";
+
+
+
+						std::string rightImg_string_ = rightImg_string+"";
+						std::string leftImg_string_ = leftImg_string+"";
+	
+			
+						leftImg_string_ = leftImg_string_.substr(0, leftImg_string_.size()-4)+".pgm";
+						rightImg_string_ = rightImg_string_.substr(0, rightImg_string_.size()-4)+".pgm";	
+
+						//printf("convert %s -flatten %s \n",leftImg_string.c_str(),leftImg_string_.c_str());
+						//printf("convert %s -flatten %s \n",rightImg_string.c_str(),rightImg_string_.c_str());
+
+
+
+
+						printf("./elas/elas %s %s %s %d\n",leftImg_string_.c_str(),rightImg_string_.c_str(),dispImg_string.c_str(),dispLevels);
+					}
+				}
+			}
+
+
+
+            
+		  }
           }
           if(isMetricCompMode){
             std::string dispImg_string = dispBase +"/left/" + zeroPadded(std::to_string(itemNum), 4) +"_"+ versionString + ".pfm";
             std::string gt_string =  dispBase +"/left/" + zeroPadded(std::to_string(itemNum), 4) + ".pfm";
-				
-            calcMetrics(methodName,versionString,resultsFileAccuracy_String, dispImg_string,gt_string,dispLevels);
+
+
+		if(versionIndex == 0){
+			if(methodtorun == 1){
+				versionString = "sgbm1";
+
+				dispImg_string = dispBase +"/left/" + zeroPadded(std::to_string(itemNum), 4) +"_"+ versionString + ".pfm";
+			}
+			if(methodtorun == 2){
+				versionString = "sgbm2";
+
+				dispImg_string = dispBase +"/left/" + zeroPadded(std::to_string(itemNum), 4) +"_"+ versionString + ".pfm";
+			}
+			if(methodtorun == 3){
+				versionString = "sed";
+
+				dispImg_string = dispBase +"/left/" + zeroPadded(std::to_string(itemNum), 4) +"_"+ versionString + ".pfm";
+			}
+			if(methodtorun == 4){
+				versionString = "elas";
+
+				dispImg_string = dispBase +"/left/" + zeroPadded(std::to_string(itemNum), 4) +"_"+ versionString + ".pfm";
+			}
+		}			
+
+
+	
+	    if(methodtorun == 0 || (methodtorun > 0 && versionIndex ==0))
+           	 calcMetrics(methodName,versionString,resultsFileAccuracy_String, dispImg_string,gt_string,dispLevels,false);
           }
         }
 			  
@@ -797,6 +1468,7 @@ int main(int argc, char * argv[]) {
 
   printf("[all,middleburry,kitti2015,realgarden,synthgarden,driving,monkaa,flyingthings] [both,metric,result]\n");
 
+  methodtorun = atoi(argv[3]);
 
   if(strcmp(argv[2], "both") == 0){
     isMetricCompMode = true;
@@ -809,11 +1481,11 @@ int main(int argc, char * argv[]) {
     isResultsCompMode = true;
   }
 
-  const char * methodNames[9] = {"middleburry", "kitti2015", "realgarden", "synthgarden", "driving", "monkaa","flyingthings"};
-  const char * methodNames2[9] = {"kitti2015", "driving", "realgarden", "synthgarden",  "monkaa","flyingthings"};
+  const char * methodNames[9] = {"middleburry"};
+  const char * methodNames2[9] =  {"kitti2015", "realgarden", "synthgarden", "driving","monkaa","flyingthings"};
 
   if (strcmp(methodName, "all") == 0) {
-    for (int i = 0; i < 6; i++) {
+    for (int i = 0; i < 2; i++) {
       processMethod(methodNames[i]);
     }
   } else if (strcmp(methodName, "all2") == 0) {
