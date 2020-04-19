@@ -179,7 +179,6 @@ The implementation is dependent on the following.
 
 * ``opencv/opencv`` (tested on version 4.1.0)
 * ``Iorethan/opencv_pfm``
-* ``FreeImage``
 ---
 # Version ROS
 
@@ -209,7 +208,6 @@ The implementation is dependent on the following.
 
 * ``opencv/opencv`` (tested on version 4.1.0)
 * ``Iorethan/opencv_pfm``
-* ``FreeImage``
 * ``ROS``
 
 ## Example
