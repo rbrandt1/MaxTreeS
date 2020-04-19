@@ -11,7 +11,7 @@ Three versions of MTStereo are stored in this repository:
 
 ## Getting Started
 
-To run the implementation, perform the subsequently listed steps.
+This is an implementation of the stereo matching method proposed in [this paper](https://www.sciencedirect.com/science/article/pii/S0167865520300581). To run the implementation, perform the subsequently listed steps.
 
 ### Download data sets
 
