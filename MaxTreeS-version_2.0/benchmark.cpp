@@ -7,7 +7,7 @@
 bool isMetricCompMode;
 bool isResultsCompMode;
 
-std::string rootFolder = "";
+std::string rootFolder = "./../datasets"; // /mnt/NAS/MaxTreeStereoData
 
 bool ends_with(std::string  const & value, std::string  const & ending) {
   if (ending.size() > value.size()) return false;
@@ -568,8 +568,8 @@ std::string genVersionString(int versionIndex, bool * useOldGradCost, bool * spa
     }
 
     //return versionString0+versionString1+versionString2+"v1";
-    //return versionString0+versionString1+versionString2;
-    return "mts1"+versionString2;
+    return versionString0+versionString1+versionString2;
+    //return "mts1"+versionString2;
 }
 
 
@@ -651,7 +651,7 @@ void processMethod(const char * methodName) {
     std::string folders[15] = {"Adirondack", "ArtL", "Jadeplant", "Motorcycle", "MotorcycleE", "Piano", "PianoL", "Pipes", "Playroom", "Playtable", "PlaytableP", "Recycle", "Shelves", "Teddy", "Vintage"}; 
     int disps[15] = {290, 256, 640, 280, 280, 260, 260, 300, 330, 290, 290, 260, 240, 256, 760 }; 
 
-    for (int i = 5; i < 15; i++) {
+    for (int i = 0; i < 15; i++) {
       std::string folder = folders[i];
       for(int versionIndex = 0 ; versionIndex < 2;versionIndex++){
 		
@@ -1083,7 +1083,7 @@ void processMethod(const char * methodName) {
 		  
 		  
 		if(methodtorun == 0 || (methodtorun > 0 && versionIndex ==0))
-          calcMetrics(methodName,versionString,resultsFileAccuracy_String, dispImg_string,gt_string,dispLevels,true);
+          calcMetrics(methodName,versionString,resultsFileAccuracy_String, dispImg_string,gt_string,dispLevels,false);
         }
       }  
 	  	  
@@ -1468,7 +1468,7 @@ int main(int argc, char * argv[]) {
 
   printf("[all,middleburry,kitti2015,realgarden,synthgarden,driving,monkaa,flyingthings] [both,metric,result]\n");
 
-  methodtorun = atoi(argv[3]);
+  methodtorun = 0; //atoi(argv[3]);
 
   if(strcmp(argv[2], "both") == 0){
     isMetricCompMode = true;

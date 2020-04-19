@@ -24,7 +24,7 @@ float allowanceSearchRange;
 
 cv::Mat costVolume[1000];
 
-bool printTimesBool = true;
+bool printTimesBool = false;
 
 bool saveStageImages = false;
 
@@ -42,11 +42,11 @@ bool print8 = false;
 bool print9 = false;
 
 
-int timeCostVolAcess_start = 0;
-int timeCostVolAcess_end = 0;
+//int timeCostVolAcess_start = 0;
+//int timeCostVolAcess_end = 0;
 
-double timeCostVolAcess_totaltime = 0;
-double timeCostVolAcess_totaltime_2 = 0;
+//double timeCostVolAcess_totaltime = 0;
+//double timeCostVolAcess_totaltime_2 = 0;
 
 /****** Functions ******/
 
@@ -705,8 +705,8 @@ public:
 		for (int r = range.start; r < range.end; r++) {
 
 			
-			timeCostVolAcess_start++;
-			auto timeCostVolAcess_start_time = getWallTime();
+			//timeCostVolAcess_start++;
+			//auto timeCostVolAcess_start_time = getWallTime();
 
 			int * res = (int *) malloc(2 * sizeof(int));
 			if(iteration < total -2 && r % everyNthRow != 0)
@@ -846,13 +846,13 @@ public:
 							int xR2 = (treeRightHor[NeighborsRTop[i]].Area % width + treeRightHor[NeighborsRTop[i]].begIndex % width) % width;
 							
 
-							auto timeCostVolAcess_start_time_2 = getWallTime();
+							//auto timeCostVolAcess_start_time_2 = getWallTime();
 
 
 							float grad2 = gradientCostComp(y,xL1,xR1,xL2,xR2,disparityLevels);
 							colCost += grad2;
 
-							timeCostVolAcess_totaltime_2 += getWallTime() - timeCostVolAcess_start_time_2;
+							//timeCostVolAcess_totaltime_2 += getWallTime() - timeCostVolAcess_start_time_2;
 													
 							float tmp = contextCost(NeighborsLTop[i],NeighborsRTop[i],treeLeftHor,treeRightHor);
 							descendentsCost += tmp;
@@ -868,14 +868,14 @@ public:
 							int xR2 = ( treeRightHor[NeighborsRBottom[i]].Area % width + treeRightHor[NeighborsRBottom[i]].begIndex % width) % width;
 							
 
-							auto timeCostVolAcess_start_time_2 = getWallTime();
+							//auto timeCostVolAcess_start_time_2 = getWallTime();
 
 
 							float grad2 = gradientCostComp(y,xL1,xR1,xL2,xR2,disparityLevels);
 							colCost += grad2;
 				
 
-							timeCostVolAcess_totaltime_2 += getWallTime() - timeCostVolAcess_start_time_2;
+							//timeCostVolAcess_totaltime_2 += getWallTime() - timeCostVolAcess_start_time_2;
 
 
 							float tmp = contextCost(NeighborsLBottom[i],NeighborsRBottom[i],treeLeftHor,treeRightHor);
@@ -921,8 +921,8 @@ public:
 
 			if (total - 2 <= iteration){
 
-				timeCostVolAcess_end++;
-				timeCostVolAcess_totaltime += getWallTime() - timeCostVolAcess_start_time;
+				//timeCostVolAcess_end++;
+				//timeCostVolAcess_totaltime += getWallTime() - timeCostVolAcess_start_time;
 
 				free(res);
 				continue;			
@@ -998,8 +998,8 @@ public:
 			free(res);	
 
 
-			timeCostVolAcess_end++;
-			timeCostVolAcess_totaltime += getWallTime() - timeCostVolAcess_start_time;
+			//timeCostVolAcess_end++;
+			//timeCostVolAcess_totaltime += getWallTime() - timeCostVolAcess_start_time;
 	
 		}
 
@@ -1335,10 +1335,10 @@ cv::Mat work(cv::Mat imgLeft, cv::Mat imgRight,bool sparse2,float alpha2,int min
 */
 
 
-	timeCostVolAcess_start = 0;
-	timeCostVolAcess_end = 0;
-	timeCostVolAcess_totaltime = 0;
-	timeCostVolAcess_totaltime_2 = 0;
+	//timeCostVolAcess_start = 0;
+	//timeCostVolAcess_end = 0;
+	//timeCostVolAcess_totaltime = 0;
+	//timeCostVolAcess_totaltime_2 = 0;
 
 	printTimes("copy variables");
 	
@@ -1637,11 +1637,11 @@ cv::Mat work(cv::Mat imgLeft, cv::Mat imgRight,bool sparse2,float alpha2,int min
 	dispMap.convertTo(dispMap,CV_32F);
 
 
-	printf("timeCostVolAcess_start: %d\n",timeCostVolAcess_start);
-	printf("timeCostVolAcess_end: %d\n",timeCostVolAcess_end);
-	printf("timeCostVolAcess_totaltime: %.0f\n",timeCostVolAcess_totaltime*1000);
-	printf("timeCostVolAcess_totaltime_2: %.0f\n",timeCostVolAcess_totaltime_2*1000);
-	printf("Percentage: %.0f\n",(timeCostVolAcess_totaltime_2/timeCostVolAcess_totaltime)*100);
+	//printf("timeCostVolAcess_start: %d\n",timeCostVolAcess_start);
+	//printf("timeCostVolAcess_end: %d\n",timeCostVolAcess_end);
+	//printf("timeCostVolAcess_totaltime: %.0f\n",timeCostVolAcess_totaltime*1000);
+	//printf("timeCostVolAcess_totaltime_2: %.0f\n",timeCostVolAcess_totaltime_2*1000);
+	//printf("Percentage: %.0f\n",(timeCostVolAcess_totaltime_2/timeCostVolAcess_totaltime)*100);
 
 
 
