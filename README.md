@@ -217,3 +217,8 @@ The implementation is dependent on the following.
 Examples of point clouds the ROS version of MTStereo can produce can be viewed by watching the following video.
 
 [![Watch the video](https://img.youtube.com/vi/VfYLtVT-DKY/maxresdefault.jpg)](https://youtu.be/VfYLtVT-DKY)
+
+
+# Acknowledgement
+
+This work received support from the EU Horizon 2020 program, under the project TrimBot2020 (grant No. 688007).
