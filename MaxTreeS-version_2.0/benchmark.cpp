@@ -7,7 +7,7 @@
 bool isMetricCompMode;
 bool isResultsCompMode;
 
-std::string rootFolder = "./../datasets"; // /mnt/NAS/MaxTreeStereoData
+std::string rootFolder = "./datasets"; 
 
 bool ends_with(std::string  const & value, std::string  const & ending) {
   if (ending.size() > value.size()) return false;
