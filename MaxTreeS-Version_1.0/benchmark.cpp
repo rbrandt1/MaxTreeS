@@ -533,7 +533,7 @@ void processMethod(const char * methodName) {
         if(isMetricCompMode){
           std::string dispImg_string = rootFolder+"/middlebury/trainingF/" + folder + "/disp0Mt_" + versionString + ".pfm";
 	  
-          dispImg_string = rootFolder+"/middlebury/trainingF/" + folder + "/sed.png";
+          //dispImg_string = rootFolder+"/middlebury/trainingF/" + folder + "/sed.png";
 
           std::string gt_string = rootFolder+"/middlebury/trainingF/" + folder + "/disp0GT.pfm";
           calcMetrics(methodName,versionString,resultsFileAccuracy_String, dispImg_string,gt_string, dispLevels);

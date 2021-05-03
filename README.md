@@ -92,7 +92,7 @@ author = "Rafaël Brandt and Nicola Strisciuglio and Nicolai Petkov and Michael 
 ```
 
 ---
-# MTStereo 2.0: improved accuracy of stereo depth estimation with Max-trees
+# MTStereo 2.0: accurate stereo depth estimation via Max-tree matching
 
 ## Getting Started
 
