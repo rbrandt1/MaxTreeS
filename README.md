@@ -56,6 +56,7 @@ The parameters of the method are assigned in the files `core.cpp` (in the sectio
 
 ### Execute implementation
 
+Compile the code. Usage of speed enhancing compilation flags is recommended, e.g. ``-o2``of gcc.
 The implementation can be run by executing the command
 
 ```
@@ -162,6 +163,7 @@ The parameters of the method are assigned in the file `benchmark.cpp` in `run()`
 
 ### Execute implementation
 
+Compile the code. Usage of speed enhancing compilation flags is recommended, e.g. ``-o2``of gcc.
 The implementation can be run by executing the command
 
 ```
